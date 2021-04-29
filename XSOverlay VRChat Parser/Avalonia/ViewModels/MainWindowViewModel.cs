@@ -4,6 +4,25 @@ namespace XSOverlay_VRChat_Parser.Avalonia.ViewModels
 {
     public class MainWindowViewModel : ViewModelBase
     {
+        public MainWindowViewModel()
+        {
+            playerJoinedChecked = PlayerJoinedChecked;
+            playerLeftChecked = PlayerLeftChecked;
+            worldChangedChecked = WorldChangedChecked;
+            portalDroppedChecked = PortalDroppedChecked;
+            shaderKeywordsChecked = ShaderKeywordsChecked;
+            playerJoinedVolume = PlayerJoinedVolume;
+            playerLeftVolume = PlayerLeftVolume;
+            worldChangedVolume = WorldChangedVolume;
+            portalDroppedVolume = PortalDroppedVolume;
+            shaderKeywordsVolume = ShaderKeywordsVolume;
+            playerJoinedTimeout = PlayerJoinedTimeout;
+            playerLeftTimeout = PlayerLeftTimeout;
+            portalDroppedTimeout = PortalDroppedTimeout;
+            worldChangedTimeout = WorldChangedTimeout;
+            shaderKeywordsTimeout = ShaderKeywordsTimeout;
+        }
+
         private bool playerJoinedChecked;
         public bool PlayerJoinedChecked
         {
