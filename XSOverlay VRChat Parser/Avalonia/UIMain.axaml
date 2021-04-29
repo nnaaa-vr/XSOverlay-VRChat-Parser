@@ -1,0 +1,13 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:XSOverlay_VRChat_Parser.Avalonia"
+             xmlns:views="clr-namespace:XSOverlay_VRChat_Parser.Avalonia.Views"
+             x:Class="XSOverlay_VRChat_Parser.Avalonia.UIMain" Name="XSOverlay VRChat Parser">
+  <Application.DataTemplates>
+    <local:ViewLocator/>
+  </Application.DataTemplates>
+  <Application.Styles>
+    <FluentTheme Mode="Dark"/>
+    <StyleInclude Source="avares://AvaloniaEdit/AvaloniaEdit.xaml" />
+  </Application.Styles>
+</Application>

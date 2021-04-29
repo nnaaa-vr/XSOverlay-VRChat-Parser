@@ -1,13 +1,16 @@
-﻿using System;
+﻿using Avalonia;
+using Avalonia.ReactiveUI;
+using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text.Json;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
-using System.Threading.Tasks;
 using XSNotifications;
 using XSNotifications.Enum;
 using XSNotifications.Helpers;
+using XSOverlay_VRChat_Parser.Avalonia;
+using XSOverlay_VRChat_Parser.Avalonia.Views;
 using XSOverlay_VRChat_Parser.Helpers;
 using XSOverlay_VRChat_Parser.Models;
 
@@ -20,11 +23,12 @@ namespace XSOverlay_VRChat_Parser
         static HashSet<string> IgnorableAudioPaths = new HashSet<string>();
         static HashSet<string> IgnorableIconPaths = new HashSet<string>();
 
-        static string UserFolderPath { get; set; }
         static string LogFileName { get; set; }
         static string LastKnownLocationName { get; set; } // World name
         static string LastKnownLocationID { get; set; } // World ID
 
+        private static bool hasApplicationMutex = false;
+        private static Mutex applicationMutex;
         static readonly object logMutex = new object();
 
         static Timer LogDetectionTimer { get; set; }
@@ -36,38 +40,51 @@ namespace XSOverlay_VRChat_Parser
 
         static XSNotifier Notifier { get; set; }
 
-        static async Task Main(string[] args)
+        static void Main(string[] args)
         {
-            UserFolderPath = Environment.ExpandEnvironmentVariables(@"%AppData%\..\LocalLow\XSOverlay VRChat Parser");
-            if (!Directory.Exists(UserFolderPath))
-                Directory.CreateDirectory(UserFolderPath);
-
-            if (!Directory.Exists($@"{UserFolderPath}\Logs"))
-                Directory.CreateDirectory($@"{UserFolderPath}\Logs");
-
             DateTime now = DateTime.Now;
+
+            if (!Directory.Exists(ConfigurationModel.ExpandedUserFolderPath))
+            {
+                Directory.CreateDirectory(ConfigurationModel.ExpandedUserFolderPath);
+                Directory.CreateDirectory($@"{ConfigurationModel.ExpandedUserFolderPath}\Logs");
+            }
+
             LogFileName = $"Session_{now.Year:0000}{now.Month:00}{now.Day:00}{now.Hour:00}{now.Minute:00}{now.Second:00}.log";
-            Log(LogEventType.Info, $@"Log initialized at {UserFolderPath}\Logs\{LogFileName}");
+            Log(LogEventType.Info, $@"Log initialized at {ConfigurationModel.ExpandedUserFolderPath}\Logs\{LogFileName}");
 
             try
             {
-                if (!File.Exists($@"{UserFolderPath}\config.json"))
+                applicationMutex = new Mutex(true, "XSOVRCParser", out hasApplicationMutex);
+
+                applicationMutex.WaitOne(1000); // Wait around for a second.
+
+                if (!hasApplicationMutex)
                 {
-                    Configuration = new ConfigurationModel();
-                    File.WriteAllText($@"{UserFolderPath}\config.json", Configuration.AsJson());
+                    Log(LogEventType.Error, "Failed to obtain exclusivity. Is another parser instance running?");
+                    Exit();
                 }
-                else
-                    Configuration = JsonSerializer.Deserialize<ConfigurationModel>(File.ReadAllText($@"{UserFolderPath}\config.json"), new JsonSerializerOptions { ReadCommentHandling = JsonCommentHandling.Skip });
+            }
+            catch (Exception ex)
+            {
+                Log(LogEventType.Error, "An exception occurred while attempting to determine exclusivity. Is another parser instance running?");
+                Log(ex);
+                Exit();
+            }
+
+            try
+            {
+                Configuration = ConfigurationModel.Load();
 
                 // Rewrite configuration to update it with any new fields not in existing configuration. Useful during update process and making sure the config always has updated annotations.
                 // Users shouldn't need to re-configure every time they update the software.
-                File.WriteAllText($@"{UserFolderPath}\config.json", Configuration.AsJson());
+                ConfigurationModel.Save(Configuration);
             }
             catch (Exception ex)
             {
                 Log(LogEventType.Error, "An exception occurred while attempting to read or write the configuration file.");
                 Log(ex);
-                return;
+                Exit();
             }
 
             IgnorableAudioPaths.Add(string.Empty);
@@ -87,7 +104,6 @@ namespace XSOverlay_VRChat_Parser
 
             XSGlobals.DefaultSourceApp = "XSOverlay VRChat Parser";
             XSGlobals.DefaultOpacity = Configuration.Opacity;
-            XSGlobals.DefaultVolume = Configuration.NotificationVolume;
 
             try
             {
@@ -119,43 +135,57 @@ namespace XSOverlay_VRChat_Parser
                 Exit();
             }
 
-            await Task.Delay(-1); // Shutdown should be managed by XSO, so just... hang around. Maybe implement periodic checks to see if XSO is running to avoid being orphaned.
+            UIMain.Start(args, BuildAvaloniaApp(), Configuration); // Blocking call to UI lifecycle
+            Exit();
         }
+
+        static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<UIMain>().UsePlatformDetect().LogToTrace()
+            .UseReactiveUI();
 
         static void Exit()
         {
-            Log(LogEventType.Info, "Disposing notifier and exiting application.");
+            Log(LogEventType.Info, "Cleaning up before termination.");
 
-            Notifier.Dispose();
+            if (Notifier != null)
+            {
+                Notifier.Dispose();
+                Log(LogEventType.Info, "Notifier disposed.");
+            }
 
-            foreach (var item in Subscriptions)
-                item.Value.Dispose();
+            if (Subscriptions != null)
+            {
+                foreach (var item in Subscriptions)
+                    item.Value.Dispose();
 
-            Subscriptions.Clear();
+                Subscriptions.Clear();
+
+                Log(LogEventType.Info, "Subscriptions cleared.");
+            }
+
+            if (hasApplicationMutex)
+            {
+                applicationMutex.ReleaseMutex();
+                Log(LogEventType.Info, "Application-level mutex released.");
+            }
+
+            Log(LogEventType.Info, "Exiting.");
 
             Environment.Exit(-1);
         }
 
-        static void Log(LogEventType type, string message)
+        static void Log(LogEventType type, string message, bool uiLogOnly = false)
         {
             DateTime now = DateTime.Now;
-            string dateTimeStamp = $"[{now.Year:0000}/{now.Month:00}/{now.Day:00} {now.Hour:00}:{now.Minute:00}:{now.Second:00}]";
+            string dateStamp = $"{now.Year:0000}/{now.Month:00}/{now.Day:00}";
+            string timeStamp = $"{now.Hour:00}:{now.Minute:00}:{now.Second:00}";
+            string typeStamp = $"{(type == LogEventType.Info ? "INFO" : (type == LogEventType.Event ? "EVENT" : "ERROR"))}";
 
             lock (logMutex)
             {
-                switch (type)
-                {
-                    case LogEventType.Error:
-                        File.AppendAllText($@"{UserFolderPath}\Logs\{LogFileName}", $"{dateTimeStamp} [ERROR] {message}\r\n");
-                        break;
-                    case LogEventType.Event:
-                        if (Configuration.LogNotificationEvents)
-                            File.AppendAllText($@"{UserFolderPath}\Logs\{LogFileName}", $"{dateTimeStamp} [EVENT] {message}\r\n");
-                        break;
-                    case LogEventType.Info:
-                        File.AppendAllText($@"{UserFolderPath}\Logs\{LogFileName}", $"{dateTimeStamp} [INFO] {message}\r\n");
-                        break;
-                }
+                MainWindow.EventLogAppend($"[{timeStamp}] <{typeStamp}> {message}\r\n");
+
+                if(!uiLogOnly)
+                    File.AppendAllText($@"{ConfigurationModel.ExpandedUserFolderPath}\Logs\{LogFileName}", $"[{dateStamp} {timeStamp}] [{typeStamp}] {message}\r\n");
             }
         }
 
@@ -266,10 +296,13 @@ namespace XSOverlay_VRChat_Parser
                                 AudioPath = IgnorableAudioPaths.Contains(Configuration.WorldChangedAudioPath) ? Configuration.WorldChangedAudioPath : Configuration.GetLocalResourcePath(Configuration.WorldChangedAudioPath),
                                 Title = LastKnownLocationName,
                                 Content = $"{(Configuration.DisplayJoinLeaveSilencedOverride ? "" : $"Silencing notifications for {Configuration.WorldJoinSilenceSeconds} seconds.")}",
-                                Height = 110
+                                Height = 110,
+                                Volume = Configuration.WorldChangedNotificationVolume
                             }));
 
-                            Log(LogEventType.Event, $"[VRC] World changed to {LastKnownLocationName} -> {LastKnownLocationID}");
+                            Log(LogEventType.Event, $"World changed to {LastKnownLocationName} -> {LastKnownLocationID}");
+
+                            Log(LogEventType.Info, $"http://vrchat.com/home/launch?worldId={LastKnownLocationID.Replace(":", "&instanceId=")}", true);
                         }
                         // Get player joins here
                         else if (line.Contains("[Behaviour] OnPlayerJoined"))
@@ -307,10 +340,11 @@ namespace XSOverlay_VRChat_Parser
                                 Timeout = Configuration.PlayerJoinedNotificationTimeoutSeconds,
                                 Icon = IgnorableIconPaths.Contains(Configuration.PlayerJoinedIconPath) ? Configuration.PlayerJoinedIconPath : Configuration.GetLocalResourcePath(Configuration.PlayerJoinedIconPath),
                                 AudioPath = IgnorableAudioPaths.Contains(Configuration.PlayerJoinedAudioPath) ? Configuration.PlayerJoinedAudioPath : Configuration.GetLocalResourcePath(Configuration.PlayerJoinedAudioPath),
-                                Title = message
+                                Title = message,
+                                Volume = Configuration.PlayerJoinedNotificationVolume
                             }));
 
-                            Log(LogEventType.Event, $"[VRC] Join: {message}");
+                            Log(LogEventType.Event, $"Join: {message}");
                         }
                         // Get player leaves
                         else if (line.Contains("[Behaviour] OnPlayerLeft "))
@@ -348,10 +382,11 @@ namespace XSOverlay_VRChat_Parser
                                 Timeout = Configuration.PlayerLeftNotificationTimeoutSeconds,
                                 Icon = IgnorableIconPaths.Contains(Configuration.PlayerLeftIconPath) ? Configuration.PlayerLeftIconPath : Configuration.GetLocalResourcePath(Configuration.PlayerLeftIconPath),
                                 AudioPath = IgnorableAudioPaths.Contains(Configuration.PlayerLeftAudioPath) ? Configuration.PlayerLeftAudioPath : Configuration.GetLocalResourcePath(Configuration.PlayerLeftAudioPath),
-                                Title = message
+                                Title = message,
+                                Volume = Configuration.PlayerLeftNotificationVolume
                             }));
 
-                            Log(LogEventType.Event, $"[VRC] Leave: {message}");
+                            Log(LogEventType.Event, $"Leave: {message}");
                         }
                         // Shader keyword limit exceeded
                         else if (line.Contains("Maximum number (256)"))
@@ -361,10 +396,11 @@ namespace XSOverlay_VRChat_Parser
                                 Timeout = Configuration.MaximumKeywordsExceededTimeoutSeconds,
                                 Icon = IgnorableIconPaths.Contains(Configuration.MaximumKeywordsExceededIconPath) ? Configuration.MaximumKeywordsExceededIconPath : Configuration.GetLocalResourcePath(Configuration.MaximumKeywordsExceededIconPath),
                                 AudioPath = IgnorableAudioPaths.Contains(Configuration.MaximumKeywordsExceededAudioPath) ? Configuration.MaximumKeywordsExceededAudioPath : Configuration.GetLocalResourcePath(Configuration.MaximumKeywordsExceededAudioPath),
-                                Title = "Maximum shader keywords exceeded!"
+                                Title = "Maximum shader keywords exceeded!",
+                                Volume = Configuration.MaximumKeywordsExceededNotificationVolume
                             }));
 
-                            Log(LogEventType.Event, $"[VRC] Maximum shader keywords exceeded!");
+                            Log(LogEventType.Event, $"Maximum shader keywords exceeded!");
                         }
                         // Portal dropped
                         else if (line.Contains("[Behaviour]") && line.Contains("Portals/PortalInternalDynamic"))
@@ -374,16 +410,73 @@ namespace XSOverlay_VRChat_Parser
                                 Timeout = Configuration.PortalDroppedTimeoutSeconds,
                                 Icon = IgnorableIconPaths.Contains(Configuration.PortalDroppedIconPath) ? Configuration.PortalDroppedIconPath : Configuration.GetLocalResourcePath(Configuration.PortalDroppedIconPath),
                                 AudioPath = IgnorableAudioPaths.Contains(Configuration.PortalDroppedAudioPath) ? Configuration.PortalDroppedAudioPath : Configuration.GetLocalResourcePath(Configuration.PortalDroppedAudioPath),
-                                Title = "A portal has been spawned."
+                                Title = "A portal has been spawned.",
+                                Volume = Configuration.PortalDroppedNotificationVolume
                             }));
 
-                            Log(LogEventType.Event, $"[VRC] Portal dropped.");
+                            Log(LogEventType.Event, $"Portal dropped.");
                         }
                     }
                 }
             }
 
             if (ToSend.Count > 0)
+            {
+                // Batch joins/leaves to avoid message spam during simultaneous joins/leaves that fall outside of the world change case
+
+                List<Tuple<EventType, XSNotification>> BatchJoins = new List<Tuple<EventType, XSNotification>>();
+                List<Tuple<EventType, XSNotification>> BatchLeaves = new List<Tuple<EventType, XSNotification>>();
+
+                int numJoins = 0, numLeaves = 0, batchJoinIndex = 0, batchLeaveIndex = 0;
+                List<int> IndicesToRemove = new List<int>();
+                for (int i = 0; i < ToSend.Count; i++)
+                {
+                    if (i > 0 && numJoins == 0 && batchJoinIndex == 0 && ToSend[i].Item1 == EventType.PlayerJoin)
+                    {
+                        ++numJoins;
+                        batchJoinIndex = i;
+                    }
+                    else if (i > 0 && numLeaves == 0 && batchLeaveIndex == 0 && ToSend[i].Item1 == EventType.PlayerLeft)
+                    {
+                        ++numLeaves;
+                        batchLeaveIndex = i;
+                    }
+                    else if (numJoins > 0 && ToSend[i].Item1 == EventType.PlayerJoin)
+                    {
+                        ++numJoins;
+                        BatchJoins.Add(ToSend[i]);
+                        IndicesToRemove.Add(i);
+                    }
+                    else if (numLeaves > 0 && ToSend[i].Item1 == EventType.PlayerLeft)
+                    {
+                        ++numLeaves;
+                        BatchLeaves.Add(ToSend[i]);
+                        IndicesToRemove.Add(i);
+                    }
+                }
+
+                if (numJoins > 0)
+                {
+                    XSNotification thisNotification = ToSend[batchJoinIndex].Item2;
+                    thisNotification.Content = $"{thisNotification.Title}, {string.Join(", ", BatchJoins.Select(x => x.Item2.Title))}";
+                    thisNotification.Title = $"Group Join: {BatchJoins.Count + 1} users.";
+                }
+
+                if (numLeaves > 0)
+                {
+                    XSNotification thisNotification = ToSend[batchLeaveIndex].Item2;
+                    thisNotification.Content = $"{thisNotification.Title}, {string.Join(", ", BatchLeaves.Select(x => x.Item2.Title))}";
+                    thisNotification.Title = $"Group Leave: {BatchLeaves.Count + 1} users.";
+                }
+
+                if (IndicesToRemove.Any())
+                {
+                    int[] orderedRemovals = IndicesToRemove.OrderByDescending(x => x).ToArray();
+
+                    for (int i = 0; i < orderedRemovals.Length; i++)
+                        ToSend.RemoveAt(orderedRemovals[i]);
+                }
+
                 foreach (Tuple<EventType, XSNotification> notification in ToSend)
                 {
                     if (
@@ -400,6 +493,7 @@ namespace XSOverlay_VRChat_Parser
                         SendNotification(notification.Item2);
                     }
                 }
+            }
         }
 
         static bool CurrentlySilenced()
