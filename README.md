@@ -28,7 +28,7 @@ For the time being, only a subset of the available configuration options are exp
 #### Interface
 An example of the interface can be seen below. 
 
-![](https://raw.githubusercontent.com/nnaaa-vr/XSOverlay-VRChat-Parser/development-avalonia/XSOverlay%20VRChat%20Parser/SampleImages/GUISample.png)
+![](https://github.com/nnaaa-vr/XSOverlay-VRChat-Parser/blob/development-avalonia/SampleImages/GUISample.png)
 
 -------------
 #### Known Issues
