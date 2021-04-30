@@ -18,6 +18,7 @@ namespace XSOverlay_VRChat_Parser.Avalonia.Views
         public static MainWindow MainWindowRef;
 
         public static ConcurrentQueue<string> MessageQueue = new ConcurrentQueue<string>();
+
         private readonly TextEditor EventLog;
         private readonly Button GitHubLink;
 
@@ -31,30 +32,26 @@ namespace XSOverlay_VRChat_Parser.Avalonia.Views
             GitHubLink = this.FindControl<Button>("GitHubLink");
             EventLog = this.FindControl<TextEditor>("EventLog");
 
-            this.PointerPressed += MainWindow_PointerPressed;
+            MainWindowRef = this;
+            PointerPressed += MainWindow_PointerPressed;
             GitHubLink.Click += GitHubLink_Click;
 
             XmlReader reader = XmlReader.Create("Resources\\EventLogSH.xshd");
             HighlightingManager.Instance.RegisterHighlighting("EventLogSH", null, HighlightingLoader.Load(reader, HighlightingManager.Instance));
-
-            MainWindowRef = this;
+            EventLog.SyntaxHighlighting = HighlightingManager.Instance.GetDefinition("EventLogSH");
 
             // This is broken right now. Issue: https://github.com/AvaloniaUI/AvaloniaEdit/issues/133
             //EventLog.Options.EnableHyperlinks = true;
             //EventLog.Options.RequireControlModifierForHyperlinkClick = false;
 
-            EventLog.SyntaxHighlighting = HighlightingManager.Instance.GetDefinition("EventLogSH");
-
             LogUpdateTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(50), DispatcherPriority.Background,
-                new EventHandler(delegate (Object o, EventArgs ea)
+                new EventHandler(delegate (object o, EventArgs ea)
                 {
                     if (MessageQueue.Count > 0)
                     {
                         string message = string.Empty;
                         while (MessageQueue.TryDequeue(out message))
-                        {
                             EventLog.AppendText(message);
-                        }
 
                         ScrollDelayToggle = true;
                     }
