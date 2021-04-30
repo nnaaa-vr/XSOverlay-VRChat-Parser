@@ -455,14 +455,14 @@ namespace XSOverlay_VRChat_Parser
                     }
                 }
 
-                if (numJoins > 0)
+                if (numJoins > 1)
                 {
                     XSNotification thisNotification = ToSend[batchJoinIndex].Item2;
                     thisNotification.Content = $"{thisNotification.Title}, {string.Join(", ", BatchJoins.Select(x => x.Item2.Title))}";
                     thisNotification.Title = $"Group Join: {BatchJoins.Count + 1} users.";
                 }
 
-                if (numLeaves > 0)
+                if (numLeaves > 1)
                 {
                     XSNotification thisNotification = ToSend[batchLeaveIndex].Item2;
                     thisNotification.Content = $"{thisNotification.Title}, {string.Join(", ", BatchLeaves.Select(x => x.Item2.Title))}";
