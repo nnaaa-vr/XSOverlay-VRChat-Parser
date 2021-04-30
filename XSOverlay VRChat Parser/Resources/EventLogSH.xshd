@@ -1,0 +1,45 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+
+<SyntaxDefinition name="Json" extensions=".json" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+  <Color name="Timestamp" foreground="DarkGray" exampleText="00:00:00" />
+  <Color name="MessageTypeError" foreground="White" background="Red" exampleText="ERROR" />
+  <Color name="MessageTypeInfo" foreground="Gray" exampleText="ERROR" />
+  <Color name="MessageTypeEvent" foreground="Gray" exampleText="ERROR" />
+  
+  <Color name="VRCPlayerJoined" foreground="LightGreen" exampleText="Player Joined" />
+  <Color name="VRCWorldChange" foreground="Plum" exampleText="World Changed" />
+  <Color name="VRCPlayerLeft" foreground="LightBlue" exampleText="Player Left" />
+  <Color name="VRCPortalDropped" foreground="Orange" exampleText="Portal Dropped" />
+  <Color name="VRCShaderKeywords" foreground="Magenta" exampleText="Shader Keywords" />
+
+  <RuleSet>
+    <Rule color="MessageTypeError">
+      \&lt;ERROR\&gt;.*
+    </Rule>
+    <Keywords color="MessageTypeInfo">
+      <Word>&lt;INFO&gt;</Word>
+    </Keywords>
+    <Keywords color="MessageTypeEvent">
+      <Word>&lt;EVENT&gt;</Word>
+    </Keywords>
+    <Rule color="Timestamp">
+      \[\d{2}:\d{2}:\d{2}\]
+    </Rule>
+    <Rule color="VRCWorldChange">
+      \bWorld.*
+    </Rule>
+    <Rule color="VRCPlayerJoined">
+      \bJoin:.*
+    </Rule>
+    <Rule color="VRCPlayerLeft">
+      \bLeave:.*
+    </Rule>
+    <Keywords color="VRCPortalDropped">
+      <Word>Portal dropped.</Word>
+    </Keywords>
+    <Keywords color="VRCShaderKeywords">
+      <Word>/Word>Maximum shader keyword exceeded!</Word>
+    </Keywords>
+</RuleSet>
+
+</SyntaxDefinition>

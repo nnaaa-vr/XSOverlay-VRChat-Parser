@@ -1,0 +1,140 @@
+﻿<controls:AcrylicWindow xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:XSOverlay_VRChat_Parser.Avalonia.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:avalonia="clr-namespace:XSOverlay_VRChat_Parser.Avalonia"
+        xmlns:controls="clr-namespace:Avalonia.Controls"
+        xmlns:ae="clr-namespace:AvaloniaEdit;assembly=AvaloniaEdit"
+        mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="800" Height="800" Width="600" MinWidth="600" MinHeight="800" MaxWidth="600" MaxHeight="800"
+        x:Class="XSOverlay_VRChat_Parser.Avalonia.Views.MainWindow"
+        Title="XSOverlay VRChat Parser"
+        Background="{x:Null}"
+        Foreground="{StaticResource SystemBaseHighColor}"
+        >
+
+  <controls:AcrylicWindow.Styles>
+    <Style Selector="TitleBar:fullscreen">
+      <Setter Property="Background" Value="#7f000000" />
+    </Style>
+  </controls:AcrylicWindow.Styles>
+
+  <Design.DataContext>
+    <vm:MainWindowViewModel/>
+  </Design.DataContext>
+
+  <NativeMenu.Menu></NativeMenu.Menu>
+
+  <Panel Margin="0">
+    <!-- Title -->
+    <TextBlock Name="TitleLabel" HorizontalAlignment="Center" Text="XSOverlay VRChat Parser" Margin="20 40 20 0" FontSize="28" FontWeight="Light" />
+
+    <!-- Notification Types -->
+    <Canvas Width="580" Height="130" VerticalAlignment="Top" Margin="0 60 0 20">
+      <Border Background="#aa222222" BorderBrush="#aa222222" BorderThickness="0" CornerRadius="5" Canvas.Top="37">
+        <Canvas Width="580" Height="270" VerticalAlignment="Top">
+          <Border Width="580" Background="#44222222" BorderBrush="#aa222222" BorderThickness="0" CornerRadius="5">
+            <TextBlock HorizontalAlignment="Center" Text="Notification Settings" FontSize="18" FontWeight="Light" FontStyle="Italic" Margin="5 5 5 5"/>
+          </Border>
+          <StackPanel Margin="20 0 0 0" Canvas.Top="30" >
+            <TextBlock HorizontalAlignment="Center" Text="Type" Margin="0 10 0 10" />
+            <CheckBox IsChecked="{Binding PlayerJoinedChecked}" Height="40">Player Joined</CheckBox>
+            <CheckBox IsChecked="{Binding PlayerLeftChecked}" Height="40">Player Left</CheckBox>
+            <CheckBox IsChecked="{Binding PortalDroppedChecked}" Height="40">Portal Dropped</CheckBox>
+            <CheckBox IsChecked="{Binding WorldChangedChecked}" Height="40">World Change</CheckBox>
+            <CheckBox IsChecked="{Binding ShaderKeywordsChecked}" Height="40">Shader Keywords</CheckBox>
+          </StackPanel>
+          <StackPanel Margin="0 10 0 0" Canvas.Left="220" Canvas.Top="30">
+            <TextBlock Text="Volume" HorizontalAlignment="Center" Width="50"></TextBlock>
+
+            <DockPanel>
+              <Slider Minimum="0" Maximum="1" TickFrequency="0.05" IsSnapToTickEnabled="True" Value="{Binding PlayerJoinedVolume}" Width="120" Height="40" DockPanel.Dock="Left"></Slider>
+              <TextBlock Text="{Binding PlayerJoinedVolume, StringFormat={}{0:0.00}}" DockPanel.Dock="Right" Margin="10 20 0 0"></TextBlock>
+            </DockPanel>
+            <DockPanel>
+              <Slider Minimum="0" Maximum="1" TickFrequency="0.05" IsSnapToTickEnabled="True" Value="{Binding PlayerLeftVolume}" Width="120" Height="40" DockPanel.Dock="Left"></Slider>
+              <TextBlock Text="{Binding PlayerLeftVolume, StringFormat={}{0:0.00}}" DockPanel.Dock="Right" Margin="10 20 0 0"></TextBlock>
+            </DockPanel>
+            <DockPanel>
+              <Slider Minimum="0" Maximum="1" TickFrequency="0.05" IsSnapToTickEnabled="True" Value="{Binding PortalDroppedVolume}" Width="120" Height="40" DockPanel.Dock="Left"></Slider>
+              <TextBlock Text="{Binding PortalDroppedVolume, StringFormat={}{0:0.00}}" DockPanel.Dock="Right" Margin="10 20 0 0"></TextBlock>
+            </DockPanel>
+            <DockPanel>
+              <Slider Minimum="0" Maximum="1" TickFrequency="0.05" IsSnapToTickEnabled="True" Value="{Binding WorldChangedVolume}" Width="120" Height="40" DockPanel.Dock="Left"></Slider>
+              <TextBlock Text="{Binding WorldChangedVolume, StringFormat={}{0:0.00}}" DockPanel.Dock="Right" Margin="10 20 0 0"></TextBlock>
+            </DockPanel>
+            <DockPanel>
+              <Slider Minimum="0" Maximum="1" TickFrequency="0.05" IsSnapToTickEnabled="True" Value="{Binding ShaderKeywordsVolume}" Width="120" Height="40" DockPanel.Dock="Left"></Slider>
+              <TextBlock Text="{Binding ShaderKeywordsVolume, StringFormat={}{0:0.00}}" DockPanel.Dock="Right" Margin="10 20 0 0"></TextBlock>
+            </DockPanel>
+          </StackPanel>
+          <StackPanel Margin="0 10 0 0" Canvas.Left="400" Canvas.Top="30">
+            <TextBlock Text="Timeout" HorizontalAlignment="Center" Width="60"></TextBlock>
+
+            <DockPanel>
+              <Slider Minimum="0" Maximum="10" TickFrequency="0.25" IsSnapToTickEnabled="True" Value="{Binding PlayerJoinedTimeout}" Width="120" Height="40" DockPanel.Dock="Left"></Slider>
+              <TextBlock Text="{Binding PlayerJoinedTimeout, StringFormat={}{0:0.00}}" DockPanel.Dock="Right" Margin="10 20 0 0"></TextBlock>
+            </DockPanel>
+            <DockPanel>
+              <Slider Minimum="0" Maximum="10" TickFrequency="0.25" IsSnapToTickEnabled="True" Value="{Binding PlayerLeftTimeout}" Width="120" Height="40" DockPanel.Dock="Left"></Slider>
+              <TextBlock Text="{Binding PlayerLeftTimeout, StringFormat={}{0:0.00}}" DockPanel.Dock="Right" Margin="10 20 0 0"></TextBlock>
+            </DockPanel>
+            <DockPanel>
+              <Slider Minimum="0" Maximum="10" TickFrequency="0.25" IsSnapToTickEnabled="True" Value="{Binding PortalDroppedTimeout}" Width="120" Height="40" DockPanel.Dock="Left"></Slider>
+              <TextBlock Text="{Binding PortalDroppedTimeout, StringFormat={}{0:0.00}}" DockPanel.Dock="Right" Margin="10 20 0 0"></TextBlock>
+            </DockPanel>
+            <DockPanel>
+              <Slider Minimum="0" Maximum="10" TickFrequency="0.25" IsSnapToTickEnabled="True" Value="{Binding WorldChangedTimeout}" Width="120" Height="40" DockPanel.Dock="Left"></Slider>
+              <TextBlock Text="{Binding WorldChangedTimeout, StringFormat={}{0:0.00}}" DockPanel.Dock="Right" Margin="10 20 0 0"></TextBlock>
+            </DockPanel>
+            <DockPanel>
+              <Slider Minimum="0" Maximum="10" TickFrequency="0.25" IsSnapToTickEnabled="True" Value="{Binding ShaderKeywordsTimeout}" Width="120" Height="40" DockPanel.Dock="Left"></Slider>
+              <TextBlock Text="{Binding ShaderKeywordsTimeout, StringFormat={}{0:0.00}}" DockPanel.Dock="Right" Margin="10 20 0 0"></TextBlock>
+            </DockPanel>
+          </StackPanel>
+        </Canvas>
+      </Border>
+    </Canvas>
+
+    <Canvas Width="580" Height="300" VerticalAlignment="Top" Margin="0 380 0 20">
+      <Border Background="#aa222222" BorderBrush="#aa222222" BorderThickness="0" CornerRadius="5">
+        <Canvas Width="580" Height="430" VerticalAlignment="Top">
+          <Border HorizontalAlignment="Center" Width="580" Background="#44222222" BorderBrush="#aa222222" BorderThickness="0" CornerRadius="5">
+            <TextBlock HorizontalAlignment="Center" Text="Event Log" FontSize="18" FontWeight="Light" FontStyle="Italic" Margin="5 5 5 5"/>
+          </Border>
+          <StackPanel Canvas.Top="30">
+            <ae:TextEditor Name="EventLog" 
+                           Height="390" 
+                           Width="565" 
+                           Margin="5" 
+                           VerticalScrollBarVisibility="Visible" 
+                           HorizontalScrollBarVisibility="Auto"
+                           IsReadOnly="True"
+                           SyntaxHighlighting="EventLogSH"
+                           FontFamily="/Avalonia/AvaloniaResources/NotoSansCJKjp-Regular.otf#Noto Sans CJK JP"
+                           />
+          </StackPanel>
+        </Canvas>
+      </Border>
+    </Canvas>
+
+    <DockPanel Margin="815 820 0 10" Width="580" Height="30">
+      <DockPanel.Styles>
+        <Style Selector="Button.GitHubLink">
+          <Setter Property="Background" Value="Transparent" />
+          <Setter Property="BorderThickness" Value="0" />
+          <Setter Property="Padding" Value="0" />
+          <Setter Property="Foreground" Value="DodgerBlue"/>
+          <Setter Property="FontSize" Value="12" />
+        </Style>
+      </DockPanel.Styles>
+
+      <Button DockPanel.Dock="Right" Name="GitHubLink" Classes="GitHubLink">
+        <Panel>
+          <Image Width="16" Height="16" Source="/Avalonia/AvaloniaResources/GitHubLogo.png" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+          <TextBlock Margin="20 0 0 0">nnaaa-vr</TextBlock>
+        </Panel>
+      </Button>
+    </DockPanel>
+  </Panel>
+</controls:AcrylicWindow>

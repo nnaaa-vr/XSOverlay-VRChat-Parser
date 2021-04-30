@@ -1,16 +1,29 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
     <RootNamespace>XSOverlay_VRChat_Parser</RootNamespace>
+    <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="XSNotifications" Version="0.1.1" />
+    <None Remove="Avalonia\AvaloniaResources\NotoSansCJKjp-Regular.otf" />
+    <None Remove="Avalonia\HighlightingDefinitions\EventLogSH.xml" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="avalonia" Version="0.10.2" />
+    <PackageReference Include="avalonia.avaloniaedit" Version="0.10.0" />
+    <PackageReference Include="avalonia.desktop" Version="0.10.2" />
+    <PackageReference Include="avalonia.reactiveui" Version="0.10.2" />
+    <PackageReference Include="XSNotifications" Version="0.1.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Resources\EventLogSH.xshd">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Resources\Icons\keywords_exceeded.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -34,4 +47,11 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Avalonia\ViewModels\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Avalonia\AvaloniaResources\**" />
+  </ItemGroup>
 </Project>
