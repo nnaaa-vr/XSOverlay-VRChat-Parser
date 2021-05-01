@@ -12,6 +12,7 @@ namespace XSOverlay_VRChat_Parser.Models
 {
     public class ConfigurationModel
     {
+        public static float CurrentVersion = 0.0f;
         public const string UserFolderPath = @"%AppData%\..\LocalLow\XSOverlay VRChat Parser";
         public static string ExpandedUserFolderPath = Environment.ExpandEnvironmentVariables(UserFolderPath);
         private static object ConfigMutex = new object();
@@ -130,7 +131,7 @@ namespace XSOverlay_VRChat_Parser.Models
             PortalDroppedAudioPath = XSGlobals.GetBuiltInAudioSourceString(XSAudioDefault.Default);
         }
 
-        public string GetLocalResourcePath(string path) => Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + path;
+        public static string GetLocalResourcePath(string path) => Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + path;
 
         public static void Save(ConfigurationModel model)
         {

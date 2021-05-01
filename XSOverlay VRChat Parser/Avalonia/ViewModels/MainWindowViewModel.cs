@@ -247,5 +247,19 @@ namespace XSOverlay_VRChat_Parser.Avalonia.ViewModels
                 this.RaiseAndSetIfChanged(ref shaderKeywordsTimeout, value);
             }
         }
+
+        private bool isUpdateAvailable;
+        public bool IsUpdateAvailable
+        {
+            get => isUpdateAvailable;
+            set => isUpdateAvailable = value;
+        }
+
+        private float currentVersion;
+        public float CurrentVersion
+        {
+            get => currentVersion;
+            set => currentVersion = value;
+        }
     }
 }

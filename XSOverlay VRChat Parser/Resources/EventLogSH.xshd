@@ -5,6 +5,7 @@
   <Color name="MessageTypeError" foreground="White" background="Red" exampleText="ERROR" />
   <Color name="MessageTypeInfo" foreground="Gray" exampleText="ERROR" />
   <Color name="MessageTypeEvent" foreground="Gray" exampleText="ERROR" />
+  <Color name="UpdateAvailable" foreground="Gold" exampleText="An update is available!" />
   
   <Color name="VRCPlayerJoined" foreground="LightGreen" exampleText="Player Joined" />
   <Color name="VRCWorldChange" foreground="Plum" exampleText="World Changed" />
@@ -22,6 +23,9 @@
     <Keywords color="MessageTypeEvent">
       <Word>&lt;EVENT&gt;</Word>
     </Keywords>
+    <Rule color="UpdateAvailable">
+      \bAn.*
+    </Rule>
     <Rule color="Timestamp">
       \[\d{2}:\d{2}:\d{2}\]
     </Rule>
@@ -38,7 +42,7 @@
       <Word>Portal dropped.</Word>
     </Keywords>
     <Keywords color="VRCShaderKeywords">
-      <Word>/Word>Maximum shader keyword exceeded!</Word>
+      <Word>Maximum shader keyword exceeded!</Word>
     </Keywords>
 </RuleSet>
 

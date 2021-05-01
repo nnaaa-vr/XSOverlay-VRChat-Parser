@@ -2,8 +2,10 @@
 using Avalonia.ReactiveUI;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading;
 using XSNotifications;
@@ -44,6 +46,11 @@ namespace XSOverlay_VRChat_Parser
         {
             DateTime now = DateTime.Now;
 
+            string versionString = FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).ProductVersion;
+            string[] versionTokens = versionString.Split('.');
+
+            ConfigurationModel.CurrentVersion = float.Parse($"{versionTokens[0]}.{versionTokens[1]}");
+
             if (!Directory.Exists(ConfigurationModel.ExpandedUserFolderPath))
             {
                 Directory.CreateDirectory(ConfigurationModel.ExpandedUserFolderPath);
@@ -52,6 +59,7 @@ namespace XSOverlay_VRChat_Parser
 
             LogFileName = $"Session_{now.Year:0000}{now.Month:00}{now.Day:00}{now.Hour:00}{now.Minute:00}{now.Second:00}.log";
             Log(LogEventType.Info, $@"Log initialized at {ConfigurationModel.ExpandedUserFolderPath}\Logs\{LogFileName}");
+            Log(LogEventType.Info, $"Current version is v{ConfigurationModel.CurrentVersion:0.00}");
 
             try
             {
@@ -184,7 +192,7 @@ namespace XSOverlay_VRChat_Parser
             {
                 MainWindow.EventLogAppend($"[{timeStamp}] <{typeStamp}> {message}\r\n");
 
-                if(!uiLogOnly)
+                if (!uiLogOnly)
                     File.AppendAllText($@"{ConfigurationModel.ExpandedUserFolderPath}\Logs\{LogFileName}", $"[{dateStamp} {timeStamp}] [{typeStamp}] {message}\r\n");
             }
         }
@@ -292,8 +300,8 @@ namespace XSOverlay_VRChat_Parser
                             ToSend.Add(new Tuple<EventType, XSNotification>(EventType.WorldChange, new XSNotification()
                             {
                                 Timeout = Configuration.WorldChangedNotificationTimeoutSeconds,
-                                Icon = IgnorableIconPaths.Contains(Configuration.WorldChangedIconPath) ? Configuration.WorldChangedIconPath : Configuration.GetLocalResourcePath(Configuration.WorldChangedIconPath),
-                                AudioPath = IgnorableAudioPaths.Contains(Configuration.WorldChangedAudioPath) ? Configuration.WorldChangedAudioPath : Configuration.GetLocalResourcePath(Configuration.WorldChangedAudioPath),
+                                Icon = IgnorableIconPaths.Contains(Configuration.WorldChangedIconPath) ? Configuration.WorldChangedIconPath : ConfigurationModel.GetLocalResourcePath(Configuration.WorldChangedIconPath),
+                                AudioPath = IgnorableAudioPaths.Contains(Configuration.WorldChangedAudioPath) ? Configuration.WorldChangedAudioPath : ConfigurationModel.GetLocalResourcePath(Configuration.WorldChangedAudioPath),
                                 Title = LastKnownLocationName,
                                 Content = $"{(Configuration.DisplayJoinLeaveSilencedOverride ? "" : $"Silencing notifications for {Configuration.WorldJoinSilenceSeconds} seconds.")}",
                                 Height = 110,
@@ -338,8 +346,8 @@ namespace XSOverlay_VRChat_Parser
                             ToSend.Add(new Tuple<EventType, XSNotification>(EventType.PlayerJoin, new XSNotification()
                             {
                                 Timeout = Configuration.PlayerJoinedNotificationTimeoutSeconds,
-                                Icon = IgnorableIconPaths.Contains(Configuration.PlayerJoinedIconPath) ? Configuration.PlayerJoinedIconPath : Configuration.GetLocalResourcePath(Configuration.PlayerJoinedIconPath),
-                                AudioPath = IgnorableAudioPaths.Contains(Configuration.PlayerJoinedAudioPath) ? Configuration.PlayerJoinedAudioPath : Configuration.GetLocalResourcePath(Configuration.PlayerJoinedAudioPath),
+                                Icon = IgnorableIconPaths.Contains(Configuration.PlayerJoinedIconPath) ? Configuration.PlayerJoinedIconPath : ConfigurationModel.GetLocalResourcePath(Configuration.PlayerJoinedIconPath),
+                                AudioPath = IgnorableAudioPaths.Contains(Configuration.PlayerJoinedAudioPath) ? Configuration.PlayerJoinedAudioPath : ConfigurationModel.GetLocalResourcePath(Configuration.PlayerJoinedAudioPath),
                                 Title = message,
                                 Volume = Configuration.PlayerJoinedNotificationVolume
                             }));
@@ -380,8 +388,8 @@ namespace XSOverlay_VRChat_Parser
                             ToSend.Add(new Tuple<EventType, XSNotification>(EventType.PlayerLeft, new XSNotification()
                             {
                                 Timeout = Configuration.PlayerLeftNotificationTimeoutSeconds,
-                                Icon = IgnorableIconPaths.Contains(Configuration.PlayerLeftIconPath) ? Configuration.PlayerLeftIconPath : Configuration.GetLocalResourcePath(Configuration.PlayerLeftIconPath),
-                                AudioPath = IgnorableAudioPaths.Contains(Configuration.PlayerLeftAudioPath) ? Configuration.PlayerLeftAudioPath : Configuration.GetLocalResourcePath(Configuration.PlayerLeftAudioPath),
+                                Icon = IgnorableIconPaths.Contains(Configuration.PlayerLeftIconPath) ? Configuration.PlayerLeftIconPath : ConfigurationModel.GetLocalResourcePath(Configuration.PlayerLeftIconPath),
+                                AudioPath = IgnorableAudioPaths.Contains(Configuration.PlayerLeftAudioPath) ? Configuration.PlayerLeftAudioPath : ConfigurationModel.GetLocalResourcePath(Configuration.PlayerLeftAudioPath),
                                 Title = message,
                                 Volume = Configuration.PlayerLeftNotificationVolume
                             }));
@@ -394,8 +402,8 @@ namespace XSOverlay_VRChat_Parser
                             ToSend.Add(new Tuple<EventType, XSNotification>(EventType.KeywordsExceeded, new XSNotification()
                             {
                                 Timeout = Configuration.MaximumKeywordsExceededTimeoutSeconds,
-                                Icon = IgnorableIconPaths.Contains(Configuration.MaximumKeywordsExceededIconPath) ? Configuration.MaximumKeywordsExceededIconPath : Configuration.GetLocalResourcePath(Configuration.MaximumKeywordsExceededIconPath),
-                                AudioPath = IgnorableAudioPaths.Contains(Configuration.MaximumKeywordsExceededAudioPath) ? Configuration.MaximumKeywordsExceededAudioPath : Configuration.GetLocalResourcePath(Configuration.MaximumKeywordsExceededAudioPath),
+                                Icon = IgnorableIconPaths.Contains(Configuration.MaximumKeywordsExceededIconPath) ? Configuration.MaximumKeywordsExceededIconPath : ConfigurationModel.GetLocalResourcePath(Configuration.MaximumKeywordsExceededIconPath),
+                                AudioPath = IgnorableAudioPaths.Contains(Configuration.MaximumKeywordsExceededAudioPath) ? Configuration.MaximumKeywordsExceededAudioPath : ConfigurationModel.GetLocalResourcePath(Configuration.MaximumKeywordsExceededAudioPath),
                                 Title = "Maximum shader keywords exceeded!",
                                 Volume = Configuration.MaximumKeywordsExceededNotificationVolume
                             }));
@@ -408,8 +416,8 @@ namespace XSOverlay_VRChat_Parser
                             ToSend.Add(new Tuple<EventType, XSNotification>(EventType.PortalDropped, new XSNotification()
                             {
                                 Timeout = Configuration.PortalDroppedTimeoutSeconds,
-                                Icon = IgnorableIconPaths.Contains(Configuration.PortalDroppedIconPath) ? Configuration.PortalDroppedIconPath : Configuration.GetLocalResourcePath(Configuration.PortalDroppedIconPath),
-                                AudioPath = IgnorableAudioPaths.Contains(Configuration.PortalDroppedAudioPath) ? Configuration.PortalDroppedAudioPath : Configuration.GetLocalResourcePath(Configuration.PortalDroppedAudioPath),
+                                Icon = IgnorableIconPaths.Contains(Configuration.PortalDroppedIconPath) ? Configuration.PortalDroppedIconPath : ConfigurationModel.GetLocalResourcePath(Configuration.PortalDroppedIconPath),
+                                AudioPath = IgnorableAudioPaths.Contains(Configuration.PortalDroppedAudioPath) ? Configuration.PortalDroppedAudioPath : ConfigurationModel.GetLocalResourcePath(Configuration.PortalDroppedAudioPath),
                                 Title = "A portal has been spawned.",
                                 Volume = Configuration.PortalDroppedNotificationVolume
                             }));
