@@ -4,6 +4,7 @@
     {
         Error,
         Event,
-        Info
+        Info,
+        Update
     }
 }

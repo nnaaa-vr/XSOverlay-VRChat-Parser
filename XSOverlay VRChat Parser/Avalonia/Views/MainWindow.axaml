@@ -96,6 +96,7 @@
       </Border>
     </Canvas>
 
+    <!-- Event Log -->
     <Canvas Width="580" Height="300" VerticalAlignment="Top" Margin="0 380 0 20">
       <Border Background="#aa222222" BorderBrush="#aa222222" BorderThickness="0" CornerRadius="5">
         <Canvas Width="580" Height="430" VerticalAlignment="Top">
@@ -118,8 +119,9 @@
       </Border>
     </Canvas>
 
-    <DockPanel Margin="815 820 0 10" Width="580" Height="30">
-      <DockPanel.Styles>
+    <!-- Bottom buttons-->
+    <Panel Margin="0 820 0 10" Width="580" Height="30">
+      <Panel.Styles>
         <Style Selector="Button.GitHubLink">
           <Setter Property="Background" Value="Transparent" />
           <Setter Property="BorderThickness" Value="0" />
@@ -127,14 +129,22 @@
           <Setter Property="Foreground" Value="DodgerBlue"/>
           <Setter Property="FontSize" Value="12" />
         </Style>
-      </DockPanel.Styles>
-
-      <Button DockPanel.Dock="Right" Name="GitHubLink" Classes="GitHubLink">
+        <Style Selector="Button.UpdateButton">
+          <Setter Property="FontSize" Value="12" />
+        </Style>
+      </Panel.Styles>
+      <Button IsVisible="{Binding IsUpdateAvailable}" Name="UpdateButton" Classes="UpdateButton" Height="30">
+        <Panel>
+          <Image Margin="-5 0 0 0" Width="24" Height="24" Source="/Avalonia/AvaloniaResources/upgrade.png" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+          <TextBlock Margin="20 0 0 0">Download Updates</TextBlock>
+        </Panel>
+      </Button>
+      <Button Margin="508 0 0 0" Name="GitHubLink" Classes="GitHubLink">
         <Panel>
           <Image Width="16" Height="16" Source="/Avalonia/AvaloniaResources/GitHubLogo.png" VerticalAlignment="Center" HorizontalAlignment="Left"/>
           <TextBlock Margin="20 0 0 0">nnaaa-vr</TextBlock>
         </Panel>
       </Button>
-    </DockPanel>
+    </Panel>
   </Panel>
 </controls:AcrylicWindow>

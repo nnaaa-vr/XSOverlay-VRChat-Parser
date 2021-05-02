@@ -1,5 +1,6 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Threading;
@@ -15,6 +16,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Xml;
 using XSOverlay_VRChat_Parser.Avalonia.ViewModels;
 using XSOverlay_VRChat_Parser.Helpers;
@@ -29,28 +31,28 @@ namespace XSOverlay_VRChat_Parser.Avalonia.Views
         public static ConcurrentQueue<string> MessageQueue = new ConcurrentQueue<string>();
         private readonly TextEditor EventLog;
         private readonly Button GitHubLink;
+        private readonly Button UpdateButton;
 
         private DispatcherTimer LogUpdateTimer;
-        private DispatcherTimer QueryUpdateUITimer;
-        private DispatcherTimer QueryUpdateUIOnLaunchTimer;
 
         private volatile bool lastIsUpdateAvailable = false;
         private Timer CheckUpdateTimer;
 
         private static bool ScrollDelayToggle = false;
-
-        private static bool IsParserStandalone = false;
-
-        private GitHubUpdater Updater;
+        private PackageUpdateManager PackageUpdateManager;
 
         public MainWindow()
         {
             InitializeComponent();
             GitHubLink = this.FindControl<Button>("GitHubLink");
+            UpdateButton = this.FindControl<Button>("UpdateButton");
             EventLog = this.FindControl<TextEditor>("EventLog");
+
+            PackageUpdateManager = new PackageUpdateManager();
 
             this.PointerPressed += MainWindow_PointerPressed;
             GitHubLink.Click += GitHubLink_Click;
+            UpdateButton.Click += UpdateButton_Click;
 
             XmlReader reader = XmlReader.Create("Resources\\EventLogSH.xshd");
             HighlightingManager.Instance.RegisterHighlighting("EventLogSH", null, HighlightingLoader.Load(reader, HighlightingManager.Instance));
@@ -73,6 +75,9 @@ namespace XSOverlay_VRChat_Parser.Avalonia.Views
                         string message = string.Empty;
                         while (MessageQueue.TryDequeue(out message))
                         {
+                            if (message.Contains("<UPDATE>"))
+                                QueryUpdateUI(null, null);
+
                             EventLog.AppendText(message);
                         }
 
@@ -83,72 +88,52 @@ namespace XSOverlay_VRChat_Parser.Avalonia.Views
                         EventLog.ScrollToEnd();
                         ScrollDelayToggle = false;
                     }
-
                 }));
 
             LogUpdateTimer.Start();
+        }
 
-            QueryUpdateUITimer = new DispatcherTimer(TimeSpan.FromMinutes(1), DispatcherPriority.Background, new EventHandler(QueryUpdateUI));
-            QueryUpdateUITimer.Start();
+        private void UpdateButton_Click(object sender, RoutedEventArgs e)
+        {
+            UpdateButton.IsEnabled = false;
 
-            QueryUpdateUIOnLaunchTimer = new DispatcherTimer(TimeSpan.FromSeconds(10), DispatcherPriority.Background, new EventHandler(QueryUpdateUI));
-            QueryUpdateUIOnLaunchTimer.Start();
+            Task.Run(() =>
+            {
+                EventLogAppend($"[{DateTime.Now.Hour:00}:{DateTime.Now.Minute:00}:{DateTime.Now.Second:00}] <UPDATE> Checking for updates for package updater...");
+
+
+                bool updaterHasUpdate = false;
+
+                try
+                {
+                    updaterHasUpdate = PackageUpdateManager.IsUpdaterUpdateAvailable(PackageUpdateManager.GetUpdaterVersion()).GetAwaiter().GetResult();
+                }
+                catch (Exception ex)
+                {
+                    EventLogAppend($"[{DateTime.Now.Hour:00}:{DateTime.Now.Minute:00}:{DateTime.Now.Second:00}] <UPDATE> An error occurred while checking for updates for the update package: {ex.Message}");
+                    return;
+                }
+
+                if (updaterHasUpdate)
+                {
+                    EventLogAppend($"[{DateTime.Now.Hour:00}:{DateTime.Now.Minute:00}:{DateTime.Now.Second:00}] <UPDATE> Downloading updater package...");
+                    EventLogAppend($"[{DateTime.Now.Hour:00}:{DateTime.Now.Minute:00}:{DateTime.Now.Second:00}] <UPDATE> Unpacking updater package...");
+                }
+                else
+                    EventLogAppend($"[{DateTime.Now.Hour:00}:{DateTime.Now.Minute:00}:{DateTime.Now.Second:00}] <UPDATE> No package updater update was found.");
+            });
         }
 
         private void QueryUpdateTick(object timerState)
         {
-            if (Updater == null)
-            {
-                // Kind of a hacky way to detect whether or not it's a standalone or framework-dependent build, but it works.
-                IsParserStandalone = File.Exists(ConfigurationModel.GetLocalResourcePath("\\createdump.exe"));
-
-                Updater = new GitHubUpdater("nnaaa-vr", "nnaaa-vr", "XSOverlay-VRChat-Parser",
-                    delegate (string[] names)
-                    {
-                        names = names.Where(x => !x.Contains("prerelease")
-                                            && !x.Contains("alpha")
-                                            && !x.Contains("beta")
-                                            && !x.Contains("rc")
-                                            && !x.Contains("-")
-                                            ).ToArray();
-
-                        for (int i = 0; i < names.Length; i++)
-                            names[i] = names[i].Replace("v", "");
-
-                        float[] asFloats = Array.ConvertAll<string, float>(names, float.Parse);
-
-                        int idxMaxFloat = 0;
-                        float lastMaxFloat = 0.0f;
-                        for (int i = 0; i < asFloats.Length; i++)
-                            if (asFloats[i] > lastMaxFloat)
-                            {
-                                lastMaxFloat = asFloats[i];
-                                idxMaxFloat = i;
-                            }
-
-                        return 'v' + names[idxMaxFloat];
-                    },
-                    delegate (string[] names)
-                    {
-                        if (IsParserStandalone)
-                            names = names.Where(x => x.Contains("_Standalone")).ToArray();
-
-                        return names.Where(x => x.Contains(".zip")).FirstOrDefault();
-                    },
-                    delegate (string tag)
-                    {
-                        return float.Parse(tag.Replace("v", ""));
-                    });
-            }
-
             try
             {
-                lastIsUpdateAvailable = Updater.IsUpdateAvailable(ConfigurationModel.CurrentVersion).GetAwaiter().GetResult();
+                lastIsUpdateAvailable = PackageUpdateManager.IsParserUpdateAvailable(ConfigurationModel.CurrentVersion).GetAwaiter().GetResult();
 
                 DateTime now = DateTime.Now;
 
-                if(lastIsUpdateAvailable)
-                    EventLogAppend($"[{now.Hour:00}:{now.Minute:00}:{now.Second:00}] <INFO> An update is available!");
+                if (lastIsUpdateAvailable)
+                    EventLogAppend($"[{now.Hour:00}:{now.Minute:00}:{now.Second:00}] <UPDATE> An update is available!");
             }
             catch (Exception ex)
             {
@@ -163,12 +148,7 @@ namespace XSOverlay_VRChat_Parser.Avalonia.Views
         private void QueryUpdateUI(object o, EventArgs ea)
         {
             if (lastIsUpdateAvailable)
-            {
                 ((MainWindowViewModel)DataContext).IsUpdateAvailable = true;
-                QueryUpdateUITimer.IsEnabled = false;
-            }
-
-            QueryUpdateUIOnLaunchTimer.IsEnabled = false;
         }
 
         private void GitHubLink_Click(object sender, global::Avalonia.Interactivity.RoutedEventArgs e)

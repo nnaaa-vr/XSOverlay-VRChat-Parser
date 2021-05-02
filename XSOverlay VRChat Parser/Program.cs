@@ -186,7 +186,16 @@ namespace XSOverlay_VRChat_Parser
             DateTime now = DateTime.Now;
             string dateStamp = $"{now.Year:0000}/{now.Month:00}/{now.Day:00}";
             string timeStamp = $"{now.Hour:00}:{now.Minute:00}:{now.Second:00}";
-            string typeStamp = $"{(type == LogEventType.Info ? "INFO" : (type == LogEventType.Event ? "EVENT" : "ERROR"))}";
+            string typeStamp = string.Empty;
+
+            switch (type)
+            {
+                case LogEventType.Info: typeStamp = "INFO"; break;
+                case LogEventType.Event: typeStamp = "EVENT"; break;
+                case LogEventType.Error: typeStamp = "ERROR"; break;
+                case LogEventType.Update: typeStamp = "UPDATE"; break;
+                default: typeStamp = "UNKNOWN"; break;
+            }
 
             lock (logMutex)
             {

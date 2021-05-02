@@ -252,14 +252,14 @@ namespace XSOverlay_VRChat_Parser.Avalonia.ViewModels
         public bool IsUpdateAvailable
         {
             get => isUpdateAvailable;
-            set => isUpdateAvailable = value;
+            set => this.RaiseAndSetIfChanged(ref isUpdateAvailable, value);
         }
 
         private float currentVersion;
         public float CurrentVersion
         {
             get => currentVersion;
-            set => currentVersion = value;
+            set => this.RaiseAndSetIfChanged(ref currentVersion, value);
         }
     }
 }

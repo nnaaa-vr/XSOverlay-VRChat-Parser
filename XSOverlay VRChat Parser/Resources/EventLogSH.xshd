@@ -3,8 +3,9 @@
 <SyntaxDefinition name="Json" extensions=".json" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
   <Color name="Timestamp" foreground="DarkGray" exampleText="00:00:00" />
   <Color name="MessageTypeError" foreground="White" background="Red" exampleText="ERROR" />
-  <Color name="MessageTypeInfo" foreground="Gray" exampleText="ERROR" />
-  <Color name="MessageTypeEvent" foreground="Gray" exampleText="ERROR" />
+  <Color name="MessageTypeInfo" foreground="Gray" exampleText="INFO" />
+  <Color name="MessageTypeEvent" foreground="Gray" exampleText="EVENT" />
+  <Color name="MessageTypeUpdate" foreground="Gray" exampleText="UPDATE" />
   <Color name="UpdateAvailable" foreground="Gold" exampleText="An update is available!" />
   
   <Color name="VRCPlayerJoined" foreground="LightGreen" exampleText="Player Joined" />
@@ -22,6 +23,9 @@
     </Keywords>
     <Keywords color="MessageTypeEvent">
       <Word>&lt;EVENT&gt;</Word>
+    </Keywords>
+    <Keywords color="MessageTypeUpdate">
+      <WOrd>&lt;UPDATE&gt;</WOrd>
     </Keywords>
     <Rule color="UpdateAvailable">
       \bAn.*
