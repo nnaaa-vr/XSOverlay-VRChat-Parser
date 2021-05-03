@@ -1,11 +1,13 @@
 ﻿using Avalonia;
 using Avalonia.ReactiveUI;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
 using XSNotifications;
 using XSNotifications.Enum;
 using XSNotifications.Helpers;
@@ -39,6 +41,12 @@ namespace XSOverlay_VRChat_Parser
                         LastMaximumKeywordsNotification = DateTime.Now;
 
         static XSNotifier Notifier { get; set; }
+
+        static ConcurrentQueue<NotificationDispatchModel> DispatchQueue = new ConcurrentQueue<NotificationDispatchModel>();
+        static Task DispatchTask;
+        static volatile bool IsExiting = false;
+        static int DispatchResolutionMilliseconds = 50;
+        static volatile int DispatchRemainingDelay = 0;
 
         static void Main(string[] args)
         {
@@ -118,6 +126,8 @@ namespace XSOverlay_VRChat_Parser
 
             Log(LogEventType.Info, $"XSNotifier initialized.");
 
+            DispatchTask = Task.Run(() => { SendNotificationTask(); return Task.CompletedTask; });
+
             try
             {
                 Notifier.SendNotification(new XSNotification()
@@ -145,6 +155,11 @@ namespace XSOverlay_VRChat_Parser
         static void Exit()
         {
             Log(LogEventType.Info, "Cleaning up before termination.");
+
+            IsExiting = true;
+
+            if(DispatchTask != null)
+                DispatchTask.Wait(DispatchResolutionMilliseconds * 2);
 
             if (Notifier != null)
             {
@@ -184,7 +199,7 @@ namespace XSOverlay_VRChat_Parser
             {
                 MainWindow.EventLogAppend($"[{timeStamp}] <{typeStamp}> {message}\r\n");
 
-                if(!uiLogOnly)
+                if (!uiLogOnly)
                     File.AppendAllText($@"{ConfigurationModel.ExpandedUserFolderPath}\Logs\{LogFileName}", $"[{dateStamp} {timeStamp}] [{typeStamp}] {message}\r\n");
             }
         }
@@ -194,17 +209,82 @@ namespace XSOverlay_VRChat_Parser
             Log(LogEventType.Error, $"{ex.Message}\r\n{ex.InnerException}\r\n{ex.StackTrace}");
         }
 
-        static void SendNotification(XSNotification notification)
+        static void SendNotificationTask()
         {
-            try
+            while (!IsExiting)
             {
-                Notifier.SendNotification(notification);
-            }
-            catch (Exception ex)
-            {
-                Log(LogEventType.Error, "An exception occurred while sending a routine event notification.");
-                Log(ex);
-                Exit();
+                if (DispatchRemainingDelay > 0 && DispatchRemainingDelay > DispatchResolutionMilliseconds)
+                    DispatchRemainingDelay -= DispatchResolutionMilliseconds;
+                else if (DispatchRemainingDelay > 0)
+                    DispatchRemainingDelay = 0;
+
+                if (DispatchRemainingDelay == 0 && DispatchQueue.Any())
+                {
+                    NotificationDispatchModel nextNotification;
+                    bool success = false;
+
+                    while (true)
+                    {
+                        success = DispatchQueue.TryDequeue(out nextNotification);
+
+                        if (success && nextNotification.WasGrouped)
+                            continue;
+                        break;
+                    }
+
+                    if (success)
+                    {
+                        DispatchRemainingDelay += nextNotification.DurationMilliseconds;
+
+                        // Combine joins and leaves, marked as grouped
+                        if ((nextNotification.Type == EventType.PlayerJoin ||
+                            nextNotification.Type == EventType.PlayerLeft) &&
+                            DispatchQueue.Count > 0)
+                        {
+                            // This is only thread-safe because this task is the only place where dequeues can happen. 
+                            for (int i = 0; i < DispatchQueue.Count; i++)
+                            {
+                                NotificationDispatchModel thisModel = DispatchQueue.ElementAt(i);
+
+                                if (!thisModel.WasGrouped
+                                    && (nextNotification.Type == EventType.PlayerJoin
+                                    && thisModel.Type == EventType.PlayerJoin)
+                                    || (nextNotification.Type == EventType.PlayerLeft
+                                    && thisModel.Type == EventType.PlayerLeft))
+                                {
+                                    nextNotification.GroupedNotifications.Add(thisModel);
+                                    thisModel.WasGrouped = true;
+                                }
+                            }
+                        }
+
+                        if (nextNotification.Type == EventType.PlayerJoin && nextNotification.GroupedNotifications.Count > 0)
+                        {
+                            nextNotification.Message.Content = $"{nextNotification.Message.Title}, {string.Join(", ", nextNotification.GroupedNotifications.Select(x => x.Message.Title))}";
+                            nextNotification.Message.Title = $"Group Join: {nextNotification.GroupedNotifications.Count + 1} users.";
+                        }
+
+                        if (nextNotification.Type == EventType.PlayerLeft && nextNotification.GroupedNotifications.Count > 0)
+                        {
+                            nextNotification.Message.Content = $"{nextNotification.Message.Title}, {string.Join(", ", nextNotification.GroupedNotifications.Select(x => x.Message.Title))}";
+                            nextNotification.Message.Title = $"Group Leave: {nextNotification.GroupedNotifications.Count + 1} users.";
+                        }
+                        try
+                        {
+                            Notifier.SendNotification(nextNotification.Message);
+                        }
+                        catch (Exception ex)
+                        {
+                            Log(LogEventType.Error, "An exception occurred while sending a routine event notification.");
+                            Log(ex);
+                            Exit();
+                        }
+                    }
+                    else
+                        Task.Delay(DispatchResolutionMilliseconds).GetAwaiter().GetResult();
+                }
+                else
+                    Task.Delay(DispatchResolutionMilliseconds).GetAwaiter().GetResult();
             }
         }
 
@@ -422,61 +502,6 @@ namespace XSOverlay_VRChat_Parser
 
             if (ToSend.Count > 0)
             {
-                // Batch joins/leaves to avoid message spam during simultaneous joins/leaves that fall outside of the world change case
-
-                List<Tuple<EventType, XSNotification>> BatchJoins = new List<Tuple<EventType, XSNotification>>();
-                List<Tuple<EventType, XSNotification>> BatchLeaves = new List<Tuple<EventType, XSNotification>>();
-
-                int numJoins = 0, numLeaves = 0, batchJoinIndex = 0, batchLeaveIndex = 0;
-                List<int> IndicesToRemove = new List<int>();
-                for (int i = 0; i < ToSend.Count; i++)
-                {
-                    if (i > 0 && numJoins == 0 && batchJoinIndex == 0 && ToSend[i].Item1 == EventType.PlayerJoin)
-                    {
-                        ++numJoins;
-                        batchJoinIndex = i;
-                    }
-                    else if (i > 0 && numLeaves == 0 && batchLeaveIndex == 0 && ToSend[i].Item1 == EventType.PlayerLeft)
-                    {
-                        ++numLeaves;
-                        batchLeaveIndex = i;
-                    }
-                    else if (numJoins > 0 && ToSend[i].Item1 == EventType.PlayerJoin)
-                    {
-                        ++numJoins;
-                        BatchJoins.Add(ToSend[i]);
-                        IndicesToRemove.Add(i);
-                    }
-                    else if (numLeaves > 0 && ToSend[i].Item1 == EventType.PlayerLeft)
-                    {
-                        ++numLeaves;
-                        BatchLeaves.Add(ToSend[i]);
-                        IndicesToRemove.Add(i);
-                    }
-                }
-
-                if (numJoins > 1)
-                {
-                    XSNotification thisNotification = ToSend[batchJoinIndex].Item2;
-                    thisNotification.Content = $"{thisNotification.Title}, {string.Join(", ", BatchJoins.Select(x => x.Item2.Title))}";
-                    thisNotification.Title = $"Group Join: {BatchJoins.Count + 1} users.";
-                }
-
-                if (numLeaves > 1)
-                {
-                    XSNotification thisNotification = ToSend[batchLeaveIndex].Item2;
-                    thisNotification.Content = $"{thisNotification.Title}, {string.Join(", ", BatchLeaves.Select(x => x.Item2.Title))}";
-                    thisNotification.Title = $"Group Leave: {BatchLeaves.Count + 1} users.";
-                }
-
-                if (IndicesToRemove.Any())
-                {
-                    int[] orderedRemovals = IndicesToRemove.OrderByDescending(x => x).ToArray();
-
-                    for (int i = 0; i < orderedRemovals.Length; i++)
-                        ToSend.RemoveAt(orderedRemovals[i]);
-                }
-
                 foreach (Tuple<EventType, XSNotification> notification in ToSend)
                 {
                     if (
@@ -485,12 +510,12 @@ namespace XSOverlay_VRChat_Parser
                         || (Configuration.DisplayWorldChanged && notification.Item1 == EventType.WorldChange)
                         || (Configuration.DisplayPortalDropped && notification.Item1 == EventType.PortalDropped)
                     )
-                        SendNotification(notification.Item2);
+                        DispatchQueue.Enqueue(new NotificationDispatchModel() { Type = notification.Item1, Message = notification.Item2, DurationMilliseconds = (int)(notification.Item2.Timeout * 1000.0f) });
                     else if (Configuration.DisplayMaximumKeywordsExceeded && notification.Item1 == EventType.KeywordsExceeded
                         && DateTime.Now > LastMaximumKeywordsNotification.AddSeconds(Configuration.MaximumKeywordsExceededCooldownSeconds))
                     {
                         LastMaximumKeywordsNotification = DateTime.Now;
-                        SendNotification(notification.Item2);
+                        DispatchQueue.Enqueue(new NotificationDispatchModel() { Type = notification.Item1, Message = notification.Item2, DurationMilliseconds = (int)(notification.Item2.Timeout * 1000.0f) });
                     }
                 }
             }
