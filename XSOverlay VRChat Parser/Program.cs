@@ -43,8 +43,7 @@ namespace XSOverlay_VRChat_Parser
 
         static Dictionary<string, TailSubscription> Subscriptions { get; set; }
 
-        static DateTime SilencedUntil = DateTime.Now,
-                        LastMaximumKeywordsNotification = DateTime.Now;
+        static DateTime LastMaximumKeywordsNotification = DateTime.Now;
 
         static XSNotifier Notifier { get; set; }
 
@@ -393,7 +392,7 @@ namespace XSOverlay_VRChat_Parser
                 }
             }
 
-            if(instanceCap > 0)
+            if (instanceCap > 0)
             {
                 // Read was presumably a success. Write values.
                 IsKnownPlayerCap = true;
@@ -598,7 +597,7 @@ namespace XSOverlay_VRChat_Parser
                                 Volume = Configuration.MaximumKeywordsExceededNotificationVolume
                             }));
 
-                            if(DateTime.Now > LastMaximumKeywordsNotification.AddSeconds(Configuration.MaximumKeywordsExceededCooldownSeconds))
+                            if (DateTime.Now > LastMaximumKeywordsNotification.AddSeconds(Configuration.MaximumKeywordsExceededCooldownSeconds))
                                 Log(LogEventType.Event, $"Maximum shader keywords exceeded!");
                         }
                         // Portal dropped
