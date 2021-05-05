@@ -9,14 +9,19 @@ namespace XSOverlay_VRChat_Parser.Helpers
     {
         private string _filePath { get; set; }
         public delegate void OnUpdate(string content);
+        public delegate void OnFirstRead(string filePath, long fromByte);
         private OnUpdate updateFunc { get; set; }
+        private OnFirstRead firstReadFunc { get; set; }
         private Timer timer { get; set; }
         private long lastSize { get; set; }
 
-        public TailSubscription(string filePath, OnUpdate func, long dueTimeMilliseconds, long frequencyMilliseconds)
+        private bool doneFirstRead { get; set; }
+
+        public TailSubscription(string filePath, OnUpdate func, long dueTimeMilliseconds, long frequencyMilliseconds, OnFirstRead readFunc = null)
         {
             _filePath = filePath;
             updateFunc = func;
+            firstReadFunc = readFunc;
             lastSize = new FileInfo(filePath).Length;
             timer = new Timer(new TimerCallback(ExecOnUpdate), null, dueTimeMilliseconds, frequencyMilliseconds);
         }
@@ -33,6 +38,12 @@ namespace XSOverlay_VRChat_Parser.Helpers
 
             if (size > lastSize)
             {
+                if (!doneFirstRead)
+                {
+                    doneFirstRead = true;
+                    firstReadFunc(_filePath, lastSize);
+                }
+
                 using (FileStream fs = new FileStream(_filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                 {
                     using (StreamReader sr = new StreamReader(fs))
