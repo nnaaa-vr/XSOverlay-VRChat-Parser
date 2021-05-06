@@ -588,17 +588,21 @@ namespace XSOverlay_VRChat_Parser
                         // Shader keyword limit exceeded
                         else if (line.Contains("Maximum number (256)"))
                         {
-                            ToSend.Add(new Tuple<EventType, XSNotification>(EventType.KeywordsExceeded, new XSNotification()
-                            {
-                                Timeout = Configuration.MaximumKeywordsExceededTimeoutSeconds,
-                                Icon = IgnorableIconPaths.Contains(Configuration.MaximumKeywordsExceededIconPath) ? Configuration.MaximumKeywordsExceededIconPath : Configuration.GetLocalResourcePath(Configuration.MaximumKeywordsExceededIconPath),
-                                AudioPath = IgnorableAudioPaths.Contains(Configuration.MaximumKeywordsExceededAudioPath) ? Configuration.MaximumKeywordsExceededAudioPath : Configuration.GetLocalResourcePath(Configuration.MaximumKeywordsExceededAudioPath),
-                                Title = "Maximum shader keywords exceeded!",
-                                Volume = Configuration.MaximumKeywordsExceededNotificationVolume
-                            }));
+                            bool doLog = DateTime.Now > LastMaximumKeywordsNotification.AddSeconds(Configuration.MaximumKeywordsExceededCooldownSeconds);
 
-                            if (DateTime.Now > LastMaximumKeywordsNotification.AddSeconds(Configuration.MaximumKeywordsExceededCooldownSeconds))
+                            if (doLog)
+                            {
+                                ToSend.Add(new Tuple<EventType, XSNotification>(EventType.KeywordsExceeded, new XSNotification()
+                                {
+                                    Timeout = Configuration.MaximumKeywordsExceededTimeoutSeconds,
+                                    Icon = IgnorableIconPaths.Contains(Configuration.MaximumKeywordsExceededIconPath) ? Configuration.MaximumKeywordsExceededIconPath : Configuration.GetLocalResourcePath(Configuration.MaximumKeywordsExceededIconPath),
+                                    AudioPath = IgnorableAudioPaths.Contains(Configuration.MaximumKeywordsExceededAudioPath) ? Configuration.MaximumKeywordsExceededAudioPath : Configuration.GetLocalResourcePath(Configuration.MaximumKeywordsExceededAudioPath),
+                                    Title = "Maximum shader keywords exceeded!",
+                                    Volume = Configuration.MaximumKeywordsExceededNotificationVolume
+                                }));
+
                                 Log(LogEventType.Event, $"Maximum shader keywords exceeded!");
+                            }
                         }
                         // Portal dropped
                         else if (line.Contains("[Behaviour]") && line.Contains("Portals/PortalInternalDynamic"))
