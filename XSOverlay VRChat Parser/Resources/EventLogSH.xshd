@@ -34,13 +34,13 @@
       \[\d{2}:\d{2}:\d{2}\]
     </Rule>
     <Rule color="VRCWorldChange">
-      \bWorld.*
+      (\bWorld.*)|(\bDiscovered.*)|(\bRewinding.*)
     </Rule>
     <Rule color="VRCPlayerJoined">
-      \bJoin:.*
+      \[(\d+|\?+)/(\d+|\?+)\].Join:.*
     </Rule>
     <Rule color="VRCPlayerLeft">
-      \bLeave:.*
+      \[(\d+|\?+)/(\d+|\?+)\].Leave:.*
     </Rule>
     <Keywords color="VRCPortalDropped">
       <Word>Portal dropped.</Word>
