@@ -16,7 +16,7 @@
 
   <RuleSet>
     <Rule color="MessageTypeError">
-      \&lt;ERROR\&gt;.*
+      \&lt;ERROR\&gt;
     </Rule>
     <Keywords color="MessageTypeInfo">
       <Word>&lt;INFO&gt;</Word>
@@ -28,7 +28,7 @@
       <WOrd>&lt;UPDATE&gt;</WOrd>
     </Keywords>
     <Rule color="UpdateAvailable">
-      \bAn.*
+      (\bAn.update.*|\bDownloading.updater.*|\bUnpacking.updater.*|\bNo.package.*|\bChecking.for.updates.*)
     </Rule>
     <Rule color="Timestamp">
       \[\d{2}:\d{2}:\d{2}\]

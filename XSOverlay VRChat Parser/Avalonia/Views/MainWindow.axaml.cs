@@ -98,7 +98,7 @@ namespace XSOverlay_VRChat_Parser.Avalonia.Views
 
             Task.Run(() =>
             {
-                EventLogAppend($"[{DateTime.Now.Hour:00}:{DateTime.Now.Minute:00}:{DateTime.Now.Second:00}] <UPDATE> Checking for updates for package updater...");
+                EventLogAppend($"[{DateTime.Now.Hour:00}:{DateTime.Now.Minute:00}:{DateTime.Now.Second:00}] <UPDATE> Checking for updates for package updater...\r\n");
 
 
                 bool updaterHasUpdate = false;
@@ -109,17 +109,17 @@ namespace XSOverlay_VRChat_Parser.Avalonia.Views
                 }
                 catch (Exception ex)
                 {
-                    EventLogAppend($"[{DateTime.Now.Hour:00}:{DateTime.Now.Minute:00}:{DateTime.Now.Second:00}] <UPDATE> An error occurred while checking for updates for the update package: {ex.Message}");
+                    EventLogAppend($"[{DateTime.Now.Hour:00}:{DateTime.Now.Minute:00}:{DateTime.Now.Second:00}] <ERROR> An error occurred while checking for updates for the update package: {ex.Message}\r\n");
                     return;
                 }
 
                 if (updaterHasUpdate)
                 {
-                    EventLogAppend($"[{DateTime.Now.Hour:00}:{DateTime.Now.Minute:00}:{DateTime.Now.Second:00}] <UPDATE> Downloading updater package...");
-                    EventLogAppend($"[{DateTime.Now.Hour:00}:{DateTime.Now.Minute:00}:{DateTime.Now.Second:00}] <UPDATE> Unpacking updater package...");
+                    EventLogAppend($"[{DateTime.Now.Hour:00}:{DateTime.Now.Minute:00}:{DateTime.Now.Second:00}] <UPDATE> Downloading updater package...\r\n");
+                    EventLogAppend($"[{DateTime.Now.Hour:00}:{DateTime.Now.Minute:00}:{DateTime.Now.Second:00}] <UPDATE> Unpacking updater package...\r\n");
                 }
                 else
-                    EventLogAppend($"[{DateTime.Now.Hour:00}:{DateTime.Now.Minute:00}:{DateTime.Now.Second:00}] <UPDATE> No package updater update was found.");
+                    EventLogAppend($"[{DateTime.Now.Hour:00}:{DateTime.Now.Minute:00}:{DateTime.Now.Second:00}] <UPDATE> No package updater update was found.\r\n");
             });
         }
 
@@ -132,7 +132,7 @@ namespace XSOverlay_VRChat_Parser.Avalonia.Views
                 DateTime now = DateTime.Now;
 
                 if (lastIsUpdateAvailable)
-                    EventLogAppend($"[{now.Hour:00}:{now.Minute:00}:{now.Second:00}] <UPDATE> An update is available!");
+                    EventLogAppend($"[{now.Hour:00}:{now.Minute:00}:{now.Second:00}] <UPDATE> An update is available!\r\n");
             }
             catch (Exception ex)
             {
