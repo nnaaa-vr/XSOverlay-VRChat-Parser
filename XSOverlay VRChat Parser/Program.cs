@@ -493,7 +493,7 @@ namespace XSOverlay_VRChat_Parser
                             Log(LogEventType.Info, $"http://vrchat.com/home/launch?worldId={LastKnownLocationID.Replace(":", "&instanceId=")}", true);
                         }
                         // Get player joins here
-                        else if (line.Contains("[Behaviour] OnPlayerJoined"))
+                        else if (line.Contains("[Behaviour] OnPlayerJoined "))
                         {
                             for (int i = 0; i < tokens.Length; i++)
                             {
@@ -605,7 +605,7 @@ namespace XSOverlay_VRChat_Parser
                             }
                         }
                         // Portal dropped
-                        else if (line.Contains("[Behaviour]") && line.Contains("Portals/PortalInternalDynamic"))
+                        else if (line.Contains("[Behaviour] Instantiated") && line.Contains("Portals/PortalInternalDynamic"))
                         {
                             ToSend.Add(new Tuple<EventType, XSNotification>(EventType.PortalDropped, new XSNotification()
                             {
