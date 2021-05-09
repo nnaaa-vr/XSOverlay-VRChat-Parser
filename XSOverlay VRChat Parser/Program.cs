@@ -335,7 +335,7 @@ namespace XSOverlay_VRChat_Parser
 
                     string thisLine = asCharSpan.Slice(currentIdx, lastIdx - currentIdx).ToString();
 
-                    if (thisLine.Contains("[Behaviour] OnPlayerJoined"))
+                    if (thisLine.Contains("[Behaviour] OnPlayerJoined "))
                         ++numPlayers;
                     else if (thisLine.Contains("[Behaviour] OnPlayerLeft "))
                         --numPlayers;
