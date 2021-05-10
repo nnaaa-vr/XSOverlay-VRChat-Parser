@@ -102,44 +102,66 @@ namespace XSOverlay_VRChat_Parser.Avalonia.Views
                     return;
                 }
 
-                //Log.Update("Checking for updates for package updater...");
-
                 bool updaterHasUpdate = false, parserHasUpdate = false, updaterIsStaged = false, parserIsStaged = false;
 
-                //try
-                //{
-                //    updaterHasUpdate = PackageUpdateManager.IsUpdaterUpdateAvailable(PackageUpdateManager.GetUpdaterVersion()).GetAwaiter().GetResult();
-                //}
-                //catch (Exception ex)
-                //{
-                //    Log.Error("An error occurred while checking for updates for the update package.");
-                //    Log.Exception(ex);
-                //    return;
-                //}
+                Log.Update("Checking for updates for package updater...");
 
-                //if (updaterHasUpdate)
-                //{
-                //    Log.Update("Downloading updater package...");
-                //    bool downloadedUpdaterUpdate = PackageUpdateManager.DownloadLatestUpdater().GetAwaiter().GetResult();
+                try
+                {
+                    updaterHasUpdate = PackageUpdateManager.IsUpdaterUpdateAvailable(PackageUpdateManager.GetUpdaterVersion()).GetAwaiter().GetResult();
+                }
+                catch (Exception ex)
+                {
+                    Log.Error("An error occurred while checking for updates for the update package.");
+                    Log.Exception(ex);
+                    return;
+                }
 
-                //    if (downloadedUpdaterUpdate)
-                //    {
-                //        Log.Update("Unpacking updater...");
-                //        bool unpackedUpdater = PackageUpdateManager.UnpackUpdater();
+                if (updaterHasUpdate)
+                {
+                    Log.Update("Downloading updater package...");
+                    bool downloadedUpdaterUpdate = false;
 
-                //        if (unpackedUpdater) {
-                //            updaterIsStaged = true;
-                //            Log.Update("Unpacked updater successfully.");
-                //        }
-                //        else
-                //            Log.Error("Failed to unpack updater!");
-                //    }
-                //    else
-                //        Log.Error("Failed to download updater update.");
-                //}
-                //else
-                //    Log.Update("No package updater update was found.");
+                    try
+                    {
+                        downloadedUpdaterUpdate = PackageUpdateManager.DownloadLatestUpdater().GetAwaiter().GetResult();
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error("Failed to download updater package!");
+                        Log.Exception(ex);
+                        return;
+                    }
 
+                    if (downloadedUpdaterUpdate)
+                    {
+                        Log.Update("Unpacking updater...");
+                        bool unpackedUpdater = false;
+
+                        try
+                        {
+                            unpackedUpdater = PackageUpdateManager.UnpackUpdater();
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Error("Failed to unpack updater!");
+                            Log.Exception(ex);
+                            return;
+                        }
+
+                        if (unpackedUpdater)
+                        {
+                            updaterIsStaged = true;
+                            Log.Update("Unpacked updater successfully.");
+                        }
+                        else
+                            Log.Error("Failed to unpack updater!");
+                    }
+                    else
+                        Log.Error("Failed to download updater update.");
+                }
+                else
+                    Log.Update("No package updater update was found.");
 
                 Log.Update("Verifying parser still has update...");
 
@@ -182,7 +204,19 @@ namespace XSOverlay_VRChat_Parser.Avalonia.Views
                 }
 
                 Log.Update("Downloaded parser package successfully. Unpacking...");
-                bool unpackedParser = PackageUpdateManager.UnpackParser();
+
+                bool unpackedParser = false;
+
+                try
+                {
+                    unpackedParser = PackageUpdateManager.UnpackParser();
+                }
+                catch (Exception ex)
+                {
+                    Log.Error("Failed to unpack parser!");
+                    Log.Exception(ex);
+                    return;
+                }
 
                 if (!unpackedParser)
                 {
@@ -194,9 +228,48 @@ namespace XSOverlay_VRChat_Parser.Avalonia.Views
 
                 Log.Update("Unpacked parser successfully.");
 
-                if((parserHasUpdate && parserIsStaged) || (updaterHasUpdate && updaterIsStaged))
+                if ((parserHasUpdate && parserIsStaged)
+                    || (updaterHasUpdate && updaterIsStaged))
                 {
                     Log.Update("Update staging is complete. Beginning update process...");
+
+                    if (updaterIsStaged)
+                    {
+                        Log.Update("Deploying updater...");
+
+                        bool updaterDeployed = false;
+
+                        try
+                        {
+                            updaterDeployed = PackageUpdateManager.DeployUpdater();
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Error("Failed to deploy updater!");
+                            Log.Exception(ex);
+                            return;
+                        }
+
+                        if(!updaterDeployed)
+                        {
+                            Log.Error("Failed to deploy updater!");
+                            return;
+                        }
+                    }
+
+                    if (parserIsStaged)
+                    {
+                        if(PackageUpdateManager.StartUpdater())
+                        {
+                            Log.Update("Launched updater. Exiting.");
+                            Close();
+                        }
+                        else
+                        {
+                            Log.Error("Failed to launch updater. Update aborted.");
+                            return;
+                        }
+                    }
                 }
             });
         }

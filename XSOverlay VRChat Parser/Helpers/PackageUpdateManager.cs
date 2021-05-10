@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using XSOverlay_VRChat_Parser.Models;
 using static XSOverlay_VRChat_Parser.Helpers.GitHubUpdater;
@@ -101,6 +102,59 @@ namespace XSOverlay_VRChat_Parser.Helpers
             return false;
         }
 
+        public bool DeployUpdater()
+        {
+            if (!Directory.Exists($@"{ConfigurationModel.ExpandedUserFolderPath}\Temp\UpdaterAssets"))
+                throw new FileNotFoundException("Updater assets path could not be found.");
+
+            string updaterDirectory = $@"{ConfigurationModel.ExpandedUserFolderPath}\Updater";
+
+            string[] assetDirectories = Directory.GetDirectories($@"{ConfigurationModel.ExpandedUserFolderPath}\Temp\UpdaterAssets");
+
+            if (!assetDirectories.Any())
+                throw new FileNotFoundException("No subdirectories were present inside updater asset directory!");
+
+            string updatedBinariesDirectory = Directory.GetDirectories($@"{ConfigurationModel.ExpandedUserFolderPath}\Temp\UpdaterAssets")[0]; // First child inside path
+
+            if (!Directory.Exists($@"{ConfigurationModel.ExpandedUserFolderPath}\Updater"))
+                Directory.CreateDirectory($@"{ConfigurationModel.ExpandedUserFolderPath}\Updater");
+
+            try
+            {
+                string[] directories = Directory.GetDirectories(updaterDirectory);
+                string[] files = Directory.GetFiles(updaterDirectory);
+
+                foreach (string dir in directories)
+                    Directory.Delete(dir, true);
+                foreach (string fn in files)
+                    File.Delete(fn);
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Encountered an exception while attempting to clear existing updater directory at {ConfigurationModel.ExpandedUserFolderPath}\\Updater");
+                Log.Exception(ex);
+                return false;
+            }
+
+            try
+            {
+                Directory.Move(updatedBinariesDirectory, updaterDirectory);
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Encountered an exception while attempting to move updater to its new home.");
+                Log.Exception(ex);
+                return false;
+            }
+
+            return true;
+        }
+
+        public bool DeployParserRequiresAdmin()
+        {
+            return !IsDirectoryWritable(Assembly.GetExecutingAssembly().Location);
+        }
+
         public async Task<bool> DownloadLatestUpdater()
         {
             return await UpdaterUpdater.DownloadLatestRelease($@"{ConfigurationModel.ExpandedUserFolderPath}\Temp");
@@ -109,6 +163,36 @@ namespace XSOverlay_VRChat_Parser.Helpers
         public async Task<bool> DownloadLatestParser()
         {
             return await ParserUpdater.DownloadLatestRelease($@"{ConfigurationModel.ExpandedUserFolderPath}\Temp");
+        }
+
+        public bool StartUpdater()
+        {
+            string currentAssemblyLocation = Assembly.GetExecutingAssembly().Location;
+            bool asAdmin = !IsDirectoryWritable(currentAssemblyLocation);
+
+            try
+            {
+                ProcessStartInfo updaterInfo = new ProcessStartInfo()
+                {
+                    FileName = $@"{ConfigurationModel.ExpandedUserFolderPath}\Updater\XSOverlay VRChat Parser Updater.exe",
+                    UseShellExecute = true,
+                    RedirectStandardOutput = false,
+                    WorkingDirectory = $@"{ConfigurationModel.ExpandedUserFolderPath}\Updater"
+                };
+
+                if (asAdmin)
+                    updaterInfo.Verb = "runas";
+
+                Process.Start(updaterInfo);
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Failed to start updater process as {(asAdmin ? "administrator." : "user.")}");
+                Log.Exception(ex);
+                return false;
+            }
+
+            return true;
         }
 
         public bool UnpackUpdater()

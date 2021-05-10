@@ -73,10 +73,13 @@ namespace XSOverlay_VRChat_Parser
             LogFileName = $"Session_{now.Year:0000}{now.Month:00}{now.Day:00}{now.Hour:00}{now.Minute:00}{now.Second:00}.log";
 
             Log.RegisterLoggingAction("LogFile", delegate (string message) {
+                DateTime now = DateTime.Now;
+                MainWindow.EventLogAppend(message);
+
                 lock (logMutex)
-                {
-                    MainWindow.EventLogAppend(message);
-                    File.AppendAllText($@"{ConfigurationModel.ExpandedUserFolderPath}\Logs\{LogFileName}", message);
+                {                    
+                    // Inserting date after initial '[' in log line for log file convenience
+                    File.AppendAllText($@"{ConfigurationModel.ExpandedUserFolderPath}\Logs\{LogFileName}", $"[{now.Year:0000}/{now.Month:00}/{now.Day:00} " + message[1..]);
                 }
             });
             
