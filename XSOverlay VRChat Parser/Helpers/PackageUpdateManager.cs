@@ -116,18 +116,10 @@ namespace XSOverlay_VRChat_Parser.Helpers
 
             string updatedBinariesDirectory = Directory.GetDirectories($@"{ConfigurationModel.ExpandedUserFolderPath}\Temp\UpdaterAssets")[0]; // First child inside path
 
-            if (!Directory.Exists($@"{ConfigurationModel.ExpandedUserFolderPath}\Updater"))
-                Directory.CreateDirectory($@"{ConfigurationModel.ExpandedUserFolderPath}\Updater");
-
             try
             {
-                string[] directories = Directory.GetDirectories(updaterDirectory);
-                string[] files = Directory.GetFiles(updaterDirectory);
-
-                foreach (string dir in directories)
-                    Directory.Delete(dir, true);
-                foreach (string fn in files)
-                    File.Delete(fn);
+                if (Directory.Exists($@"{ConfigurationModel.ExpandedUserFolderPath}\Updater"))
+                    Directory.Delete($@"{ConfigurationModel.ExpandedUserFolderPath}\Updater", true);
             }
             catch (Exception ex)
             {
@@ -152,7 +144,9 @@ namespace XSOverlay_VRChat_Parser.Helpers
 
         public bool DeployParserRequiresAdmin()
         {
-            return !IsDirectoryWritable(Assembly.GetExecutingAssembly().Location);
+            string currentAssemblyLocation = Assembly.GetExecutingAssembly().Location;
+            currentAssemblyLocation = currentAssemblyLocation.Substring(0, currentAssemblyLocation.LastIndexOf('\\'));
+            return !IsDirectoryWritable(currentAssemblyLocation);
         }
 
         public async Task<bool> DownloadLatestUpdater()
@@ -168,7 +162,20 @@ namespace XSOverlay_VRChat_Parser.Helpers
         public bool StartUpdater()
         {
             string currentAssemblyLocation = Assembly.GetExecutingAssembly().Location;
+            currentAssemblyLocation = currentAssemblyLocation.Substring(0, currentAssemblyLocation.LastIndexOf('\\'));
+            string updatedBinariesDirectory = string.Empty;
             bool asAdmin = !IsDirectoryWritable(currentAssemblyLocation);
+
+            try
+            {
+                updatedBinariesDirectory = Directory.GetDirectories($@"{ConfigurationModel.ExpandedUserFolderPath}\Temp\ParserAssets")[0];
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Failed to find directory for updated parser assets at {updatedBinariesDirectory}");
+                Log.Exception(ex);
+                return false;
+            }
 
             try
             {
@@ -177,6 +184,7 @@ namespace XSOverlay_VRChat_Parser.Helpers
                     FileName = $@"{ConfigurationModel.ExpandedUserFolderPath}\Updater\XSOverlay VRChat Parser Updater.exe",
                     UseShellExecute = true,
                     RedirectStandardOutput = false,
+                    Arguments = $"\"{updatedBinariesDirectory}\" \"{currentAssemblyLocation}\" {Environment.ProcessId}",
                     WorkingDirectory = $@"{ConfigurationModel.ExpandedUserFolderPath}\Updater"
                 };
 

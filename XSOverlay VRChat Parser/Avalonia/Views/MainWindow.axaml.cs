@@ -29,6 +29,7 @@ namespace XSOverlay_VRChat_Parser.Avalonia.Views
 
         private DispatcherTimer LogUpdateTimer;
 
+        private volatile bool doExit = false;
         private volatile bool lastIsUpdateAvailable = false;
         private Timer CheckUpdateTimer;
 
@@ -64,6 +65,9 @@ namespace XSOverlay_VRChat_Parser.Avalonia.Views
             LogUpdateTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(50), DispatcherPriority.Background,
                 new EventHandler(delegate (Object o, EventArgs ea)
                 {
+                    if (doExit)
+                        Close();
+
                     if (MessageQueue.Count > 0)
                     {
                         string message = string.Empty;
@@ -250,7 +254,7 @@ namespace XSOverlay_VRChat_Parser.Avalonia.Views
                             return;
                         }
 
-                        if(!updaterDeployed)
+                        if (!updaterDeployed)
                         {
                             Log.Error("Failed to deploy updater!");
                             return;
@@ -259,10 +263,10 @@ namespace XSOverlay_VRChat_Parser.Avalonia.Views
 
                     if (parserIsStaged)
                     {
-                        if(PackageUpdateManager.StartUpdater())
+                        if (PackageUpdateManager.StartUpdater())
                         {
                             Log.Update("Launched updater. Exiting.");
-                            Close();
+                            doExit = true;
                         }
                         else
                         {
