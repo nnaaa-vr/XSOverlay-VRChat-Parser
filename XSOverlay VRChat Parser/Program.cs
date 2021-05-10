@@ -591,8 +591,8 @@ namespace XSOverlay_VRChat_Parser
                                 ToSend.Add(new Tuple<EventType, XSNotification>(EventType.KeywordsExceeded, new XSNotification()
                                 {
                                     Timeout = Configuration.MaximumKeywordsExceededTimeoutSeconds,
-                                    Icon = IgnorableIconPaths.Contains(Configuration.MaximumKeywordsExceededIconPath) ? Configuration.MaximumKeywordsExceededIconPath : Configuration.GetLocalResourcePath(Configuration.MaximumKeywordsExceededIconPath),
-                                    AudioPath = IgnorableAudioPaths.Contains(Configuration.MaximumKeywordsExceededAudioPath) ? Configuration.MaximumKeywordsExceededAudioPath : Configuration.GetLocalResourcePath(Configuration.MaximumKeywordsExceededAudioPath),
+                                    Icon = IgnorableIconPaths.Contains(Configuration.MaximumKeywordsExceededIconPath) ? Configuration.MaximumKeywordsExceededIconPath : ConfigurationModel.GetLocalResourcePath(Configuration.MaximumKeywordsExceededIconPath),
+                                    AudioPath = IgnorableAudioPaths.Contains(Configuration.MaximumKeywordsExceededAudioPath) ? Configuration.MaximumKeywordsExceededAudioPath : ConfigurationModel.GetLocalResourcePath(Configuration.MaximumKeywordsExceededAudioPath),
                                     Title = "Maximum shader keywords exceeded!",
                                     Volume = Configuration.MaximumKeywordsExceededNotificationVolume
                                 }));
