@@ -81,11 +81,14 @@ namespace XSOverlay_VRChat_Parser.Helpers
 
         public bool CleanTemp()
         {
-            string[] directories = Directory.GetDirectories($@"{ConfigurationModel.ExpandedUserFolderPath}\Temp");
-            string[] files = Directory.GetFiles($@"{ConfigurationModel.ExpandedUserFolderPath}\Temp");
-
             try
             {
+                if (!Directory.Exists($@"{ConfigurationModel.ExpandedUserFolderPath}\Temp"))
+                    Directory.CreateDirectory($@"{ConfigurationModel.ExpandedUserFolderPath}\Temp");
+
+                string[] directories = Directory.GetDirectories($@"{ConfigurationModel.ExpandedUserFolderPath}\Temp");
+                string[] files = Directory.GetFiles($@"{ConfigurationModel.ExpandedUserFolderPath}\Temp");
+
                 foreach (string dir in directories)
                     Directory.Delete(dir, true);
                 foreach (string fn in files)
