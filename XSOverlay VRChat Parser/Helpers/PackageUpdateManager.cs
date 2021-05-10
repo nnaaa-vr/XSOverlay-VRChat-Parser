@@ -164,7 +164,6 @@ namespace XSOverlay_VRChat_Parser.Helpers
             string currentAssemblyLocation = Assembly.GetExecutingAssembly().Location;
             currentAssemblyLocation = currentAssemblyLocation.Substring(0, currentAssemblyLocation.LastIndexOf('\\'));
             string updatedBinariesDirectory = string.Empty;
-            bool asAdmin = !IsDirectoryWritable(currentAssemblyLocation);
 
             try
             {
@@ -188,14 +187,13 @@ namespace XSOverlay_VRChat_Parser.Helpers
                     WorkingDirectory = $@"{ConfigurationModel.ExpandedUserFolderPath}\Updater"
                 };
 
-                if (asAdmin)
-                    updaterInfo.Verb = "runas";
+                updaterInfo.Verb = "runas";
 
                 Process.Start(updaterInfo);
             }
             catch (Exception ex)
             {
-                Log.Error($"Failed to start updater process as {(asAdmin ? "administrator." : "user.")}");
+                Log.Error($"Failed to start updater process.");
                 Log.Exception(ex);
                 return false;
             }
