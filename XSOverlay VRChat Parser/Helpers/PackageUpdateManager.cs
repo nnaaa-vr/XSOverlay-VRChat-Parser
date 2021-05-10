@@ -183,11 +183,9 @@ namespace XSOverlay_VRChat_Parser.Helpers
                     FileName = $@"{ConfigurationModel.ExpandedUserFolderPath}\Updater\XSOverlay VRChat Parser Updater.exe",
                     UseShellExecute = true,
                     RedirectStandardOutput = false,
-                    Arguments = $"\"{updatedBinariesDirectory}\" \"{currentAssemblyLocation}\" {Environment.ProcessId}",
+                    Arguments = $"\"{updatedBinariesDirectory}\" \"{currentAssemblyLocation}\" {Environment.ProcessId} false",
                     WorkingDirectory = $@"{ConfigurationModel.ExpandedUserFolderPath}\Updater"
                 };
-
-                updaterInfo.Verb = "runas";
 
                 Process.Start(updaterInfo);
             }
