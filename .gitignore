@@ -35,3 +35,8 @@ msbuild.wrn
 
 # Visual Studio 2015
 .vs/
+
+# Merge generated files
+*_BACKUP_*.csproj
+*_LOCAL_*.csproj
+*_REMOTE_*.csproj
