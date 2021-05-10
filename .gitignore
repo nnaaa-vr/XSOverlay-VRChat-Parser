@@ -40,3 +40,4 @@ msbuild.wrn
 *_BACKUP_*.csproj
 *_LOCAL_*.csproj
 *_REMOTE_*.csproj
+*_BASE_*.csproj
