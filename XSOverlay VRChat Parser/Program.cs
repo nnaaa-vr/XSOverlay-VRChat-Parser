@@ -331,7 +331,7 @@ namespace XSOverlay_VRChat_Parser
 
                     string thisLine = asCharSpan.Slice(currentIdx, lastIdx - currentIdx).ToString();
 
-                    if (thisLine.Contains("[Behaviour] OnPlayerJoined"))
+                    if (thisLine.Contains("[Behaviour] OnPlayerJoined "))
                         ++numPlayers;
                     else if (thisLine.Contains("[Behaviour] OnPlayerLeft "))
                         --numPlayers;
@@ -489,7 +489,7 @@ namespace XSOverlay_VRChat_Parser
                             Log.Info($"http://vrchat.com/home/launch?worldId={LastKnownLocationID.Replace(":", "&instanceId=")}");
                         }
                         // Get player joins here
-                        else if (line.Contains("[Behaviour] OnPlayerJoined"))
+                        else if (line.Contains("[Behaviour] OnPlayerJoined "))
                         {
                             for (int i = 0; i < tokens.Length; i++)
                             {
@@ -584,20 +584,24 @@ namespace XSOverlay_VRChat_Parser
                         // Shader keyword limit exceeded
                         else if (line.Contains("Maximum number (256)"))
                         {
-                            ToSend.Add(new Tuple<EventType, XSNotification>(EventType.KeywordsExceeded, new XSNotification()
-                            {
-                                Timeout = Configuration.MaximumKeywordsExceededTimeoutSeconds,
-                                Icon = IgnorableIconPaths.Contains(Configuration.MaximumKeywordsExceededIconPath) ? Configuration.MaximumKeywordsExceededIconPath : ConfigurationModel.GetLocalResourcePath(Configuration.MaximumKeywordsExceededIconPath),
-                                AudioPath = IgnorableAudioPaths.Contains(Configuration.MaximumKeywordsExceededAudioPath) ? Configuration.MaximumKeywordsExceededAudioPath : ConfigurationModel.GetLocalResourcePath(Configuration.MaximumKeywordsExceededAudioPath),
-                                Title = "Maximum shader keywords exceeded!",
-                                Volume = Configuration.MaximumKeywordsExceededNotificationVolume
-                            }));
+                            bool doLog = DateTime.Now > LastMaximumKeywordsNotification.AddSeconds(Configuration.MaximumKeywordsExceededCooldownSeconds);
 
-                            if (DateTime.Now > LastMaximumKeywordsNotification.AddSeconds(Configuration.MaximumKeywordsExceededCooldownSeconds))
+                            if (doLog)
+                            {
+                                ToSend.Add(new Tuple<EventType, XSNotification>(EventType.KeywordsExceeded, new XSNotification()
+                                {
+                                    Timeout = Configuration.MaximumKeywordsExceededTimeoutSeconds,
+                                    Icon = IgnorableIconPaths.Contains(Configuration.MaximumKeywordsExceededIconPath) ? Configuration.MaximumKeywordsExceededIconPath : Configuration.GetLocalResourcePath(Configuration.MaximumKeywordsExceededIconPath),
+                                    AudioPath = IgnorableAudioPaths.Contains(Configuration.MaximumKeywordsExceededAudioPath) ? Configuration.MaximumKeywordsExceededAudioPath : Configuration.GetLocalResourcePath(Configuration.MaximumKeywordsExceededAudioPath),
+                                    Title = "Maximum shader keywords exceeded!",
+                                    Volume = Configuration.MaximumKeywordsExceededNotificationVolume
+                                }));
+
                                 Log.Event($"Maximum shader keywords exceeded!");
+                            }
                         }
                         // Portal dropped
-                        else if (line.Contains("[Behaviour]") && line.Contains("Portals/PortalInternalDynamic"))
+                        else if (line.Contains("[Behaviour] Instantiated") && line.Contains("Portals/PortalInternalDynamic"))
                         {
                             ToSend.Add(new Tuple<EventType, XSNotification>(EventType.PortalDropped, new XSNotification()
                             {

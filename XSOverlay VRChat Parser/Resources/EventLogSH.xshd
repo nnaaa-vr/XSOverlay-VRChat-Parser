@@ -46,7 +46,7 @@
       <Word>Portal dropped.</Word>
     </Keywords>
     <Keywords color="VRCShaderKeywords">
-      <Word>Maximum shader keyword exceeded!</Word>
+      <Word>Maximum shader keywords exceeded!</Word>
     </Keywords>
 </RuleSet>
 
