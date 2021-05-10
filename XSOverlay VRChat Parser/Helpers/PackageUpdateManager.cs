@@ -1,9 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using XSOverlay_VRChat_Parser.Models;
 using static XSOverlay_VRChat_Parser.Helpers.GitHubUpdater;
@@ -51,6 +50,8 @@ namespace XSOverlay_VRChat_Parser.Helpers
             {
                 if (IsParserStandalone)
                     names = names.Where(x => x.Contains("_Standalone")).ToArray();
+                else
+                    names = names.Where(x => !x.Contains("_Standlone")).ToArray();
 
                 return names.Where(x => x.Contains(".zip")).FirstOrDefault();
             };
@@ -77,35 +78,111 @@ namespace XSOverlay_VRChat_Parser.Helpers
             return await UpdaterUpdater.IsUpdateAvailable(greaterThanVersion);
         }
 
-        //public async Task<bool> DownloadLatestUpdater()
-        //{
+        public bool CleanTemp()
+        {
+            string[] directories = Directory.GetDirectories($@"{ConfigurationModel.ExpandedUserFolderPath}\Temp");
+            string[] files = Directory.GetFiles($@"{ConfigurationModel.ExpandedUserFolderPath}\Temp");
 
-        //}
+            try
+            {
+                foreach (string dir in directories)
+                    Directory.Delete(dir, true);
+                foreach (string fn in files)
+                    File.Delete(fn);
 
-        //public async Task<bool> DownloadLatestParser()
-        //{
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Encountered an exception while attempting to clean temp directory at {ConfigurationModel.ExpandedUserFolderPath}\\Temp");
+                Log.Exception(ex);
+            }
 
-        //}
+            return false;
+        }
 
-        //public async Task<bool> UnpackUpdater()
-        //{
+        public async Task<bool> DownloadLatestUpdater()
+        {
+            return await UpdaterUpdater.DownloadLatestRelease($@"{ConfigurationModel.ExpandedUserFolderPath}\Temp");
+        }
 
-        //}
+        public async Task<bool> DownloadLatestParser()
+        {
+            return await ParserUpdater.DownloadLatestRelease($@"{ConfigurationModel.ExpandedUserFolderPath}\Temp");
+        }
 
-        //public async Task<bool> UnpackParser()
-        //{
+        public bool UnpackUpdater()
+        {
+            string lastUpdaterPath = UpdaterUpdater.LastDownloadedReleasePath;
 
-        //}
+            if (lastUpdaterPath == string.Empty)
+                throw new FileNotFoundException("Updater update was not successfully downloaded. No path was found.");
 
-        //public async Task<bool> WriteUpdaterDirective()
-        //{
+            if (!File.Exists(lastUpdaterPath))
+                throw new FileNotFoundException($"File path provided by updater did not exist! Path: {lastUpdaterPath}");
 
-        //}
+            string updaterAssetPath = $@"{ConfigurationModel.ExpandedUserFolderPath}\Temp\UpdaterAssets";
+
+            if (Directory.Exists(updaterAssetPath))
+                throw new Exception($"Updater unpack path already exists! CleanTemp failed or was not called? Path: {updaterAssetPath}");
+
+            Directory.CreateDirectory(updaterAssetPath);
+
+            try
+            {
+                ZipFile.ExtractToDirectory(lastUpdaterPath, updaterAssetPath);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Failed to extract parser from {lastUpdaterPath} to {updaterAssetPath} with the following exception...");
+                Log.Exception(ex);
+                return false;
+            }
+        }
+
+        public bool UnpackParser()
+        {
+            string lastParserPath = ParserUpdater.LastDownloadedReleasePath;
+
+            if (lastParserPath == string.Empty)
+                throw new FileNotFoundException("Parser update was not successfully downloaded. No path was found.");
+
+            if (!File.Exists(lastParserPath))
+                throw new FileNotFoundException($"File path provided by updater did not exist! Path: {lastParserPath}");
+
+            string parserAssetPath = $@"{ConfigurationModel.ExpandedUserFolderPath}\Temp\ParserAssets";
+
+            if (Directory.Exists(parserAssetPath))
+                throw new Exception($"Parser unpack path already exists! CleanTemp failed or was not called? Path: {parserAssetPath}");
+
+            Directory.CreateDirectory(parserAssetPath);
+
+            try
+            {
+                ZipFile.ExtractToDirectory(lastParserPath, parserAssetPath);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Failed to extract parser from {lastParserPath} to {parserAssetPath} with the following exception...");
+                Log.Exception(ex);
+                return false;
+            }
+        }
 
         public float GetUpdaterVersion()
         {
             if (!Directory.Exists($@"{ConfigurationModel.ExpandedUserFolderPath}\Temp"))
+            {
+                if (!IsDirectoryWritable(ConfigurationModel.ExpandedUserFolderPath))
+                    throw new UnauthorizedAccessException($"User running process does not have write/delete permissions to {ConfigurationModel.ExpandedUserFolderPath}");
+
                 Directory.CreateDirectory($@"{ConfigurationModel.ExpandedUserFolderPath}\Temp");
+
+                if (!IsDirectoryWritable($@"{ConfigurationModel.ExpandedUserFolderPath}\Temp"))
+                    throw new UnauthorizedAccessException($"User running process does not have write/delete permissions to {ConfigurationModel.ExpandedUserFolderPath}\\Temp");
+            }
 
             if (File.Exists($@"{ConfigurationModel.ExpandedUserFolderPath}\Temp\XSOverlay VRChat Parser Updater.exe"))
             {
@@ -116,6 +193,26 @@ namespace XSOverlay_VRChat_Parser.Helpers
             }
 
             return 0.0f;
+        }
+
+        public bool IsDirectoryWritable(string path)
+        {
+            try
+            {
+                if (!Directory.Exists(path))
+                    throw new DirectoryNotFoundException($"Failed to find directory at {path}");
+
+                // I was going to use System.Security.AccessControl.DirectorySecurity here and check ACLs, but it's much faster and easier to just, well, try to write something
+
+                File.WriteAllBytes($@"{path}\.writable", new byte[1] { 0x01 });
+                File.Delete($@"{path}\.writable");
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
         }
     }
 }

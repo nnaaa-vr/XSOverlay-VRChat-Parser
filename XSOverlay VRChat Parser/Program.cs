@@ -71,8 +71,17 @@ namespace XSOverlay_VRChat_Parser
             }
 
             LogFileName = $"Session_{now.Year:0000}{now.Month:00}{now.Day:00}{now.Hour:00}{now.Minute:00}{now.Second:00}.log";
-            Log(LogEventType.Info, $@"Log initialized at {ConfigurationModel.ExpandedUserFolderPath}\Logs\{LogFileName}");
-            Log(LogEventType.Info, $"Current version is v{ConfigurationModel.CurrentVersion:0.00}");
+
+            Log.RegisterLoggingAction("LogFile", delegate (string message) {
+                lock (logMutex)
+                {
+                    MainWindow.EventLogAppend(message);
+                    File.AppendAllText($@"{ConfigurationModel.ExpandedUserFolderPath}\Logs\{LogFileName}", message);
+                }
+            });
+            
+            Log.Info($@"Log initialized at {ConfigurationModel.ExpandedUserFolderPath}\Logs\{LogFileName}");
+            Log.Info($"Current version is v{ConfigurationModel.CurrentVersion:0.00}");
 
             try
             {
@@ -82,14 +91,14 @@ namespace XSOverlay_VRChat_Parser
 
                 if (!hasApplicationMutex)
                 {
-                    Log(LogEventType.Error, "Failed to obtain exclusivity. Is another parser instance running?");
+                    Log.Error("Failed to obtain exclusivity. Is another parser instance running?");
                     Exit();
                 }
             }
             catch (Exception ex)
             {
-                Log(LogEventType.Error, "An exception occurred while attempting to determine exclusivity. Is another parser instance running?");
-                Log(ex);
+                Log.Error("An exception occurred while attempting to determine exclusivity. Is another parser instance running?");
+                Log.Exception(ex);
                 Exit();
             }
 
@@ -103,8 +112,8 @@ namespace XSOverlay_VRChat_Parser
             }
             catch (Exception ex)
             {
-                Log(LogEventType.Error, "An exception occurred while attempting to read or write the configuration file.");
-                Log(ex);
+                Log.Error("An exception occurred while attempting to read or write the configuration file.");
+                Log.Exception(ex);
                 Exit();
             }
 
@@ -121,7 +130,7 @@ namespace XSOverlay_VRChat_Parser
             Subscriptions = new Dictionary<string, TailSubscription>();
             LogDetectionTimer = new Timer(new TimerCallback(LogDetectionTick), null, 0, Configuration.DirectoryPollFrequencyMilliseconds);
 
-            Log(LogEventType.Info, $"Log detection timer initialized with poll frequency {Configuration.DirectoryPollFrequencyMilliseconds} and parse frequency {Configuration.ParseFrequencyMilliseconds}.");
+            Log.Info($"Log detection timer initialized with poll frequency {Configuration.DirectoryPollFrequencyMilliseconds} and parse frequency {Configuration.ParseFrequencyMilliseconds}.");
 
             XSGlobals.DefaultSourceApp = "XSOverlay VRChat Parser";
             XSGlobals.DefaultOpacity = Configuration.Opacity;
@@ -132,12 +141,12 @@ namespace XSOverlay_VRChat_Parser
             }
             catch (Exception ex)
             {
-                Log(LogEventType.Error, "An exception occurred while constructing XSNotifier.");
-                Log(ex);
+                Log.Error("An exception occurred while constructing XSNotifier.");
+                Log.Exception(ex);
                 Exit();
             }
 
-            Log(LogEventType.Info, $"XSNotifier initialized.");
+            Log.Info($"XSNotifier initialized.");
 
             DispatchTask = Task.Run(() => { SendNotificationTask(); return Task.CompletedTask; });
 
@@ -153,8 +162,8 @@ namespace XSOverlay_VRChat_Parser
             }
             catch (Exception ex)
             {
-                Log(LogEventType.Error, "An exception occurred while sending initialization notification.");
-                Log(ex);
+                Log.Error("An exception occurred while sending initialization notification.");
+                Log.Exception(ex);
                 Exit();
             }
 
@@ -167,7 +176,7 @@ namespace XSOverlay_VRChat_Parser
 
         static void Exit()
         {
-            Log(LogEventType.Info, "Cleaning up before termination.");
+            Log.Info("Cleaning up before termination.");
 
             IsExiting = true;
 
@@ -177,7 +186,7 @@ namespace XSOverlay_VRChat_Parser
             if (Notifier != null)
             {
                 Notifier.Dispose();
-                Log(LogEventType.Info, "Notifier disposed.");
+                Log.Info("Notifier disposed.");
             }
 
             if (Subscriptions != null)
@@ -187,48 +196,18 @@ namespace XSOverlay_VRChat_Parser
 
                 Subscriptions.Clear();
 
-                Log(LogEventType.Info, "Subscriptions cleared.");
+                Log.Info("Subscriptions cleared.");
             }
 
             if (hasApplicationMutex)
             {
                 applicationMutex.ReleaseMutex();
-                Log(LogEventType.Info, "Application-level mutex released.");
+                Log.Info("Application-level mutex released.");
             }
 
-            Log(LogEventType.Info, "Exiting.");
+            Log.Info("Exiting.");
 
             Environment.Exit(-1);
-        }
-
-        static void Log(LogEventType type, string message, bool uiLogOnly = false)
-        {
-            DateTime now = DateTime.Now;
-            string dateStamp = $"{now.Year:0000}/{now.Month:00}/{now.Day:00}";
-            string timeStamp = $"{now.Hour:00}:{now.Minute:00}:{now.Second:00}";
-            string typeStamp = string.Empty;
-
-            switch (type)
-            {
-                case LogEventType.Info: typeStamp = "INFO"; break;
-                case LogEventType.Event: typeStamp = "EVENT"; break;
-                case LogEventType.Error: typeStamp = "ERROR"; break;
-                case LogEventType.Update: typeStamp = "UPDATE"; break;
-                default: typeStamp = "UNKNOWN"; break;
-            }
-
-            lock (logMutex)
-            {
-                MainWindow.EventLogAppend($"[{timeStamp}] <{typeStamp}> {message}\r\n");
-
-                if (!uiLogOnly)
-                    File.AppendAllText($@"{ConfigurationModel.ExpandedUserFolderPath}\Logs\{LogFileName}", $"[{dateStamp} {timeStamp}] [{typeStamp}] {message}\r\n");
-            }
-        }
-
-        static void Log(Exception ex)
-        {
-            Log(LogEventType.Error, $"{ex.Message}\r\n{ex.InnerException}\r\n{ex.StackTrace}");
         }
 
         static void SendNotificationTask()
@@ -299,8 +278,8 @@ namespace XSOverlay_VRChat_Parser
                         }
                         catch (Exception ex)
                         {
-                            Log(LogEventType.Error, "An exception occurred while sending a routine event notification.");
-                            Log(ex);
+                            Log.Error("An exception occurred while sending a routine event notification.");
+                            Log.Exception(ex);
                             Exit();
                         }
                     }
@@ -319,13 +298,13 @@ namespace XSOverlay_VRChat_Parser
                 if (!Subscriptions.ContainsKey(fn) && fn.Contains("output_log"))
                 {
                     Subscriptions.Add(fn, new TailSubscription(fn, ParseTick, 0, Configuration.ParseFrequencyMilliseconds, RewindLogForMetadata));
-                    Log(LogEventType.Info, $"A tail subscription was added to {fn}");
+                    Log.Info($"A tail subscription was added to {fn}");
                 }
         }
 
         static void RewindLogForMetadata(string filePath, long fromByte)
         {
-            Log(LogEventType.Info, $"Rewinding time to collect metadata for first time read of log at {filePath}...");
+            Log.Info($"Rewinding time to collect metadata for first time read of log at {filePath}...");
 
             string worldName = string.Empty;
             string instanceId = string.Empty;
@@ -419,12 +398,12 @@ namespace XSOverlay_VRChat_Parser
                 LastKnownLocationName = worldName;
                 LastKnownLocationID = instanceId;
 
-                Log(LogEventType.Info, $"Discovered instance {worldName} ({instanceId}).");
-                Log(LogEventType.Info, $"Discovered {numPlayers} players with a cap of {instanceCap}.");
+                Log.Info($"Discovered instance {worldName} ({instanceId}).");
+                Log.Info($"Discovered {numPlayers} players with a cap of {instanceCap}.");
             }
             else
             {
-                Log(LogEventType.Info, $"No existing instance found.");
+                Log.Info($"No existing instance found.");
             }
         }
 
@@ -506,8 +485,8 @@ namespace XSOverlay_VRChat_Parser
                             NextJoinIsLocalUser = true;
                             IsKnownPlayerCount = true;
 
-                            Log(LogEventType.Event, $"World changed to {LastKnownLocationName} -> {LastKnownLocationID}");
-                            Log(LogEventType.Info, $"http://vrchat.com/home/launch?worldId={LastKnownLocationID.Replace(":", "&instanceId=")}", true);
+                            Log.Event($"World changed to {LastKnownLocationName} -> {LastKnownLocationID}");
+                            Log.Info($"http://vrchat.com/home/launch?worldId={LastKnownLocationID.Replace(":", "&instanceId=")}");
                         }
                         // Get player joins here
                         else if (line.Contains("[Behaviour] OnPlayerJoined"))
@@ -556,7 +535,7 @@ namespace XSOverlay_VRChat_Parser
 
                             NextJoinIsLocalUser = false;
 
-                            Log(LogEventType.Event, $"[{(IsKnownPlayerCount ? LastKnownPlayerCount.ToString() : "??")}/{(IsKnownPlayerCap ? LastKnownPlayerCap.ToString() : "??")}] Join: {message} ");
+                            Log.Event($"[{(IsKnownPlayerCount ? LastKnownPlayerCount.ToString() : "??")}/{(IsKnownPlayerCap ? LastKnownPlayerCap.ToString() : "??")}] Join: {message} ");
                         }
                         // Get player leaves
                         else if (line.Contains("[Behaviour] OnPlayerLeft "))
@@ -600,7 +579,7 @@ namespace XSOverlay_VRChat_Parser
                                 Volume = Configuration.PlayerLeftNotificationVolume
                             }));
 
-                            Log(LogEventType.Event, $"[{(IsKnownPlayerCount ? LastKnownPlayerCount.ToString() : "??")}/{(IsKnownPlayerCap ? LastKnownPlayerCap.ToString() : "??")}] Leave: {message}");
+                            Log.Event($"[{(IsKnownPlayerCount ? LastKnownPlayerCount.ToString() : "??")}/{(IsKnownPlayerCap ? LastKnownPlayerCap.ToString() : "??")}] Leave: {message}");
                         }
                         // Shader keyword limit exceeded
                         else if (line.Contains("Maximum number (256)"))
@@ -615,7 +594,7 @@ namespace XSOverlay_VRChat_Parser
                             }));
 
                             if (DateTime.Now > LastMaximumKeywordsNotification.AddSeconds(Configuration.MaximumKeywordsExceededCooldownSeconds))
-                                Log(LogEventType.Event, $"Maximum shader keywords exceeded!");
+                                Log.Event($"Maximum shader keywords exceeded!");
                         }
                         // Portal dropped
                         else if (line.Contains("[Behaviour]") && line.Contains("Portals/PortalInternalDynamic"))
@@ -629,7 +608,7 @@ namespace XSOverlay_VRChat_Parser
                                 Volume = Configuration.PortalDroppedNotificationVolume
                             }));
 
-                            Log(LogEventType.Event, $"Portal dropped.");
+                            Log.Event($"Portal dropped.");
                         }
                         // Instance cap
                         else if (line.Contains("[Behaviour] Hard max"))
@@ -641,9 +620,9 @@ namespace XSOverlay_VRChat_Parser
                             LastKnownPlayerCap = playerCapOut;
 
                             if (IsKnownPlayerCap)
-                                Log(LogEventType.Info, $"Player cap is {LastKnownPlayerCap}");
+                                Log.Info($"Player cap is {LastKnownPlayerCap}");
                             else
-                                Log(LogEventType.Info, $"Failed to retrieve player cap data for instance.");
+                                Log.Info($"Failed to retrieve player cap data for instance.");
                         }
                     }
                 }

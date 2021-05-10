@@ -6,14 +6,9 @@ using Avalonia.Threading;
 using AvaloniaEdit;
 using AvaloniaEdit.Highlighting;
 using AvaloniaEdit.Highlighting.Xshd;
-using Octokit;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
@@ -98,28 +93,111 @@ namespace XSOverlay_VRChat_Parser.Avalonia.Views
 
             Task.Run(() =>
             {
-                EventLogAppend($"[{DateTime.Now.Hour:00}:{DateTime.Now.Minute:00}:{DateTime.Now.Second:00}] <UPDATE> Checking for updates for package updater...\r\n");
+                Log.Update("Cleaning up temp directory...");
+                bool cleaned = PackageUpdateManager.CleanTemp();
 
-
-                bool updaterHasUpdate = false;
-
-                try
+                if (!cleaned)
                 {
-                    updaterHasUpdate = PackageUpdateManager.IsUpdaterUpdateAvailable(PackageUpdateManager.GetUpdaterVersion()).GetAwaiter().GetResult();
-                }
-                catch (Exception ex)
-                {
-                    EventLogAppend($"[{DateTime.Now.Hour:00}:{DateTime.Now.Minute:00}:{DateTime.Now.Second:00}] <ERROR> An error occurred while checking for updates for the update package: {ex.Message}\r\n");
+                    Log.Error("Failed to clean up temp directory!");
                     return;
                 }
 
-                if (updaterHasUpdate)
+                //Log.Update("Checking for updates for package updater...");
+
+                bool updaterHasUpdate = false, parserHasUpdate = false, updaterIsStaged = false, parserIsStaged = false;
+
+                //try
+                //{
+                //    updaterHasUpdate = PackageUpdateManager.IsUpdaterUpdateAvailable(PackageUpdateManager.GetUpdaterVersion()).GetAwaiter().GetResult();
+                //}
+                //catch (Exception ex)
+                //{
+                //    Log.Error("An error occurred while checking for updates for the update package.");
+                //    Log.Exception(ex);
+                //    return;
+                //}
+
+                //if (updaterHasUpdate)
+                //{
+                //    Log.Update("Downloading updater package...");
+                //    bool downloadedUpdaterUpdate = PackageUpdateManager.DownloadLatestUpdater().GetAwaiter().GetResult();
+
+                //    if (downloadedUpdaterUpdate)
+                //    {
+                //        Log.Update("Unpacking updater...");
+                //        bool unpackedUpdater = PackageUpdateManager.UnpackUpdater();
+
+                //        if (unpackedUpdater) {
+                //            updaterIsStaged = true;
+                //            Log.Update("Unpacked updater successfully.");
+                //        }
+                //        else
+                //            Log.Error("Failed to unpack updater!");
+                //    }
+                //    else
+                //        Log.Error("Failed to download updater update.");
+                //}
+                //else
+                //    Log.Update("No package updater update was found.");
+
+
+                Log.Update("Verifying parser still has update...");
+
+                try
                 {
-                    EventLogAppend($"[{DateTime.Now.Hour:00}:{DateTime.Now.Minute:00}:{DateTime.Now.Second:00}] <UPDATE> Downloading updater package...\r\n");
-                    EventLogAppend($"[{DateTime.Now.Hour:00}:{DateTime.Now.Minute:00}:{DateTime.Now.Second:00}] <UPDATE> Unpacking updater package...\r\n");
+                    parserHasUpdate = PackageUpdateManager.IsParserUpdateAvailable(ConfigurationModel.CurrentVersion).GetAwaiter().GetResult();
+                }
+                catch (Exception ex)
+                {
+                    Log.Error("An error occurred while checking for updates for the parser package.");
+                    Log.Exception(ex);
+                    return;
+                }
+
+                if (!parserHasUpdate)
+                {
+                    Log.Update("Parser no longer appears to have an update available. Was it rolled back?");
+                    return;
+                }
+
+                Log.Update("A parser package update is available. Downloading...");
+
+                bool downloadedParserUpdate = false;
+
+                try
+                {
+                    downloadedParserUpdate = PackageUpdateManager.DownloadLatestParser().GetAwaiter().GetResult();
+                }
+                catch (Exception ex)
+                {
+                    Log.Error("Failed to download parser package!");
+                    Log.Exception(ex);
+                    return;
+                }
+
+                if (!downloadedParserUpdate)
+                {
+                    Log.Error("Failed to download parser package.");
+                    return;
+                }
+
+                Log.Update("Downloaded parser package successfully. Unpacking...");
+                bool unpackedParser = PackageUpdateManager.UnpackParser();
+
+                if (!unpackedParser)
+                {
+                    Log.Error("Failed to unpack parser!");
+                    return;
                 }
                 else
-                    EventLogAppend($"[{DateTime.Now.Hour:00}:{DateTime.Now.Minute:00}:{DateTime.Now.Second:00}] <UPDATE> No package updater update was found.\r\n");
+                    parserIsStaged = true;
+
+                Log.Update("Unpacked parser successfully.");
+
+                if((parserHasUpdate && parserIsStaged) || (updaterHasUpdate && updaterIsStaged))
+                {
+                    Log.Update("Update staging is complete. Beginning update process...");
+                }
             });
         }
 
@@ -132,12 +210,13 @@ namespace XSOverlay_VRChat_Parser.Avalonia.Views
                 DateTime now = DateTime.Now;
 
                 if (lastIsUpdateAvailable)
-                    EventLogAppend($"[{now.Hour:00}:{now.Minute:00}:{now.Second:00}] <UPDATE> An update is available!\r\n");
+                    Log.Update("An update is available!");
             }
             catch (Exception ex)
             {
                 DateTime now = DateTime.Now;
-                EventLogAppend($"[{now.Hour:00}:{now.Minute:00}:{now.Second:00}] <ERROR> Failed to check for updates: {ex.Message}\r\n");
+                Log.Error("Failed to check for updates.");
+                Log.Exception(ex);
             }
 
             if (lastIsUpdateAvailable)

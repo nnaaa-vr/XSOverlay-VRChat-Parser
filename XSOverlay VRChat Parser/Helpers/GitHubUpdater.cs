@@ -1,15 +1,10 @@
 ﻿using Octokit;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Reflection;
-using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using XSOverlay_VRChat_Parser.Models;
 
 namespace XSOverlay_VRChat_Parser.Helpers
 {
@@ -27,6 +22,7 @@ namespace XSOverlay_VRChat_Parser.Helpers
         public string ProductHeaderValue { get; private set; }
         public string RepositoryOwner { get; private set; }
         public string RepositoryName { get; private set; }
+        public string LastDownloadedReleasePath { get; private set; }
 
         public GitHubUpdater(string productHeaderValue,
                              string repositoryOwner,
@@ -42,6 +38,7 @@ namespace XSOverlay_VRChat_Parser.Helpers
             ReleaseAssetFilter = assetFilterFunc;
             ReleaseTagFilter = tagFilterFunc;
             ReleaseTagFloatConverter = tagFloatConverterFunc;
+            LastDownloadedReleasePath = string.Empty;
 
             if (Client == null)
                 Client = new GitHubClient(new ProductHeaderValue(productHeaderValue));
@@ -171,7 +168,10 @@ namespace XSOverlay_VRChat_Parser.Helpers
             {
                 using (WebClient wc = new WebClient())
                 {
-                    await wc.DownloadFileTaskAsync(Uri, $"{targetDirectory}\\{uriExtractedFilename}");
+                    string releasePath = $"{targetDirectory}\\{uriExtractedFilename}";
+
+                    await wc.DownloadFileTaskAsync(Uri, releasePath);
+                    LastDownloadedReleasePath = releasePath;
                 }
             }
             catch (Exception ex)

@@ -21,6 +21,7 @@
     <PackageReference Include="avalonia.desktop" Version="0.10.2" />
     <PackageReference Include="avalonia.reactiveui" Version="0.10.2" />
     <PackageReference Include="octokit" Version="0.50.0" />
+    <PackageReference Include="system.io.filesystem.accesscontrol" Version="5.0.0" />
     <PackageReference Include="XSNotifications" Version="0.1.2" />
   </ItemGroup>
 
