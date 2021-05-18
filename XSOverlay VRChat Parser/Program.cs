@@ -34,6 +34,7 @@ namespace XSOverlay_VRChat_Parser
         static bool NextJoinIsLocalUser { get; set; }
         static bool IsKnownPlayerCap { get; set; }
         static bool IsKnownPlayerCount { get; set; }
+        static bool PlayerIsBetweenWorlds { get; set; }
 
         private static bool hasApplicationMutex = false;
         private static Mutex applicationMutex;
@@ -458,6 +459,8 @@ namespace XSOverlay_VRChat_Parser
 
                                 LastKnownLocationName = name.Trim();
                             }
+
+                            PlayerIsBetweenWorlds = false;
                         }
                         // Get new LastKnownLocationID here
                         else if (line.Contains("Joining w"))
@@ -574,16 +577,18 @@ namespace XSOverlay_VRChat_Parser
 
                             --LastKnownPlayerCount;
 
-                            ToSend.Add(new Tuple<EventType, XSNotification>(EventType.PlayerLeft, new XSNotification()
-                            {
-                                Timeout = Configuration.PlayerLeftNotificationTimeoutSeconds,
-                                Icon = IgnorableIconPaths.Contains(Configuration.PlayerLeftIconPath) ? Configuration.PlayerLeftIconPath : Configuration.GetLocalResourcePath(Configuration.PlayerLeftIconPath),
-                                AudioPath = IgnorableAudioPaths.Contains(Configuration.PlayerLeftAudioPath) ? Configuration.PlayerLeftAudioPath : Configuration.GetLocalResourcePath(Configuration.PlayerLeftAudioPath),
-                                Title = message,
-                                Volume = Configuration.PlayerLeftNotificationVolume
-                            }));
+                            if(!PlayerIsBetweenWorlds)
+                                ToSend.Add(new Tuple<EventType, XSNotification>(EventType.PlayerLeft, new XSNotification()
+                                {
+                                    Timeout = Configuration.PlayerLeftNotificationTimeoutSeconds,
+                                    Icon = IgnorableIconPaths.Contains(Configuration.PlayerLeftIconPath) ? Configuration.PlayerLeftIconPath : Configuration.GetLocalResourcePath(Configuration.PlayerLeftIconPath),
+                                    AudioPath = IgnorableAudioPaths.Contains(Configuration.PlayerLeftAudioPath) ? Configuration.PlayerLeftAudioPath : Configuration.GetLocalResourcePath(Configuration.PlayerLeftAudioPath),
+                                    Title = message,
+                                    Volume = Configuration.PlayerLeftNotificationVolume
+                                }));
 
-                            Log(LogEventType.Event, $"[{(IsKnownPlayerCount ? LastKnownPlayerCount.ToString() : "??")}/{(IsKnownPlayerCap ? LastKnownPlayerCap.ToString() : "??")}] Leave: {message}");
+                            if(!PlayerIsBetweenWorlds)
+                                Log(LogEventType.Event, $"[{(IsKnownPlayerCount ? LastKnownPlayerCount.ToString() : "??")}/{(IsKnownPlayerCap ? LastKnownPlayerCap.ToString() : "??")}] Leave: {message}");
                         }
                         // Shader keyword limit exceeded
                         else if (line.Contains("Maximum number (256)"))
@@ -631,6 +636,11 @@ namespace XSOverlay_VRChat_Parser
                                 Log(LogEventType.Info, $"Player cap is {LastKnownPlayerCap}");
                             else
                                 Log(LogEventType.Info, $"Failed to retrieve player cap data for instance.");
+                        }
+                        else if (line.Contains("[Behaviour] OnLeftRoom"))
+                        {
+                            PlayerIsBetweenWorlds = true;
+                            Log(LogEventType.Event, $"Left world or exited client.");
                         }
                     }
                 }
