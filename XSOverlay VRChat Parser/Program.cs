@@ -44,6 +44,7 @@ namespace XSOverlay_VRChat_Parser
 
         static Dictionary<string, TailSubscription> Subscriptions { get; set; }
 
+        static DateTime SilencedUntil = DateTime.Now;
         static DateTime LastMaximumKeywordsNotification = DateTime.Now;
 
         static XSNotifier Notifier { get; set; }
@@ -480,12 +481,15 @@ namespace XSOverlay_VRChat_Parser
                         // At this point, we have the location name/id and are transitioning.
                         else if (line.Contains("Successfully joined room"))
                         {
+                            SilencedUntil = DateTime.Now.AddSeconds(Configuration.WorldJoinSilenceSeconds);
+
                             ToSend.Add(new Tuple<EventType, XSNotification>(EventType.WorldChange, new XSNotification()
                             {
                                 Timeout = Configuration.WorldChangedNotificationTimeoutSeconds,
                                 Icon = IgnorableIconPaths.Contains(Configuration.WorldChangedIconPath) ? Configuration.WorldChangedIconPath : Configuration.GetLocalResourcePath(Configuration.WorldChangedIconPath),
                                 AudioPath = IgnorableAudioPaths.Contains(Configuration.WorldChangedAudioPath) ? Configuration.WorldChangedAudioPath : Configuration.GetLocalResourcePath(Configuration.WorldChangedAudioPath),
                                 Title = LastKnownLocationName,
+                                Content = $"{(Configuration.DisplayJoinLeaveSilencedOverride ? "" : $"Silencing notifications for {Configuration.WorldJoinSilenceSeconds} seconds.")}",
                                 Volume = Configuration.WorldChangedNotificationVolume
                             }));
 
@@ -651,8 +655,8 @@ namespace XSOverlay_VRChat_Parser
                 foreach (Tuple<EventType, XSNotification> notification in ToSend)
                 {
                     if (
-                        (Configuration.DisplayPlayerJoined && notification.Item1 == EventType.PlayerJoin)
-                        || (Configuration.DisplayPlayerLeft && notification.Item1 == EventType.PlayerLeft)
+                        (!CurrentlySilenced() && Configuration.DisplayPlayerJoined && notification.Item1 == EventType.PlayerJoin)
+                        || (!CurrentlySilenced() && Configuration.DisplayPlayerLeft && notification.Item1 == EventType.PlayerLeft)
                         || (Configuration.DisplayWorldChanged && notification.Item1 == EventType.WorldChange)
                         || (Configuration.DisplayPortalDropped && notification.Item1 == EventType.PortalDropped)
                     )
@@ -665,6 +669,17 @@ namespace XSOverlay_VRChat_Parser
                     }
                 }
             }
+        }
+
+        static bool CurrentlySilenced()
+        {
+            if (Configuration.DisplayJoinLeaveSilencedOverride)
+                return false;
+
+            if (DateTime.Now > SilencedUntil)
+                return false;
+
+            return true;
         }
     }
 }

@@ -51,6 +51,10 @@ namespace XSOverlay_VRChat_Parser.Models
 
         [Annotation("Determines whether or not world change notifications are delivered. Valid values: true, false", true, "WORLD CHANGED")]
         public bool DisplayWorldChanged { get; set; }
+        [Annotation("Period of time in seconds for player join/leave notifications to be silenced on world join. This is to avoid spam from enumerating everyone currently in the target world. Valid values: 0.0 -> float32 max")]
+        public long WorldJoinSilenceSeconds { get; set; }
+        [Annotation("Determines whether or not player join/leave notifications are silenced on world join. Warning, this gets spammy if on! Valid values: true, false")]
+        public bool DisplayJoinLeaveSilencedOverride { get; set; }
         [Annotation("Period of time in seconds for the world changed notification to remain on screen. Value values: 0.0 -> float32 max")]
         public float WorldChangedNotificationTimeoutSeconds { get; set; }
         [Annotation("Volume for incoming notification sounds. Valid values: 0.0 -> 1.0.")]
@@ -105,6 +109,8 @@ namespace XSOverlay_VRChat_Parser.Models
             PlayerLeftAudioPath = @"\Resources\Audio\player_left.ogg";
 
             DisplayWorldChanged = true;
+            WorldJoinSilenceSeconds = 20;
+            DisplayJoinLeaveSilencedOverride = true;
             WorldChangedNotificationTimeoutSeconds = 3.0f;
             WorldChangedNotificationVolume = 0.2f;
             WorldChangedIconPath = @"\Resources\Icons\world_changed.png";
