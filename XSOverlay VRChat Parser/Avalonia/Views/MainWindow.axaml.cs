@@ -39,10 +39,14 @@ namespace XSOverlay_VRChat_Parser.Avalonia.Views
             MainWindowRef = this;
 
             // This is broken right now. Issue: https://github.com/AvaloniaUI/AvaloniaEdit/issues/133
-            //EventLog.Options.EnableHyperlinks = true;
-            //EventLog.Options.RequireControlModifierForHyperlinkClick = false;
+            EventLog.Options.EnableHyperlinks = true;
+            EventLog.Options.RequireControlModifierForHyperlinkClick = false;
 
             EventLog.SyntaxHighlighting = HighlightingManager.Instance.GetDefinition("EventLogSH");
+
+            EventLog.AddHandler(AvaloniaEdit.Rendering.VisualLineLinkText.OpenUriEvent, (s, e) => {
+                Process.Start(new ProcessStartInfo { FileName = e.Uri.ToString(), UseShellExecute = true, RedirectStandardOutput = false });
+            });
 
             LogUpdateTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(50), DispatcherPriority.Background,
                 new EventHandler(delegate (Object o, EventArgs ea)

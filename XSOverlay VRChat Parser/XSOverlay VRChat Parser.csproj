@@ -14,10 +14,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="avalonia" Version="0.10.2" />
-    <PackageReference Include="avalonia.avaloniaedit" Version="0.10.0" />
-    <PackageReference Include="avalonia.desktop" Version="0.10.2" />
-    <PackageReference Include="avalonia.reactiveui" Version="0.10.2" />
+    <PackageReference Include="avalonia" Version="0.10.5" />
+    <PackageReference Include="avalonia.desktop" Version="0.10.5" />
+    <PackageReference Include="avalonia.reactiveui" Version="0.10.5" />
     <PackageReference Include="XSNotifications" Version="0.1.2" />
   </ItemGroup>
 
@@ -49,10 +48,17 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Avalonia\Binaries\" />
     <Folder Include="Avalonia\ViewModels\" />
   </ItemGroup>
 
   <ItemGroup>
     <AvaloniaResource Include="Avalonia\AvaloniaResources\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="AvaloniaEdit">
+      <HintPath>Avalonia\Binaries\AvaloniaEdit.dll</HintPath>
+    </Reference>
   </ItemGroup>
 </Project>
