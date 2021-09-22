@@ -595,7 +595,7 @@ namespace XSOverlay_VRChat_Parser
                                 Log(LogEventType.Event, $"[{(IsKnownPlayerCount ? LastKnownPlayerCount.ToString() : "??")}/{(IsKnownPlayerCap ? LastKnownPlayerCap.ToString() : "??")}] Leave: {message}");
                         }
                         // Shader keyword limit exceeded
-                        else if (line.Contains("Maximum number (256)"))
+                        else if (line.Contains("Maximum number ("))
                         {
                             bool doLog = DateTime.Now > LastMaximumKeywordsNotification.AddSeconds(Configuration.MaximumKeywordsExceededCooldownSeconds);
 
@@ -641,10 +641,76 @@ namespace XSOverlay_VRChat_Parser
                             else
                                 Log(LogEventType.Info, $"Failed to retrieve player cap data for instance.");
                         }
+                        // Instance left and/or client exited
                         else if (line.Contains("[Behaviour] OnLeftRoom"))
                         {
                             PlayerIsBetweenWorlds = true;
                             Log(LogEventType.Event, $"Left world or exited client.");
+                        }
+                        // Video requested
+                        else if (line.Contains("[Video Playback] Attempting"))
+                        {
+                            for(int i = 0; i < tokens.Length; i++)
+                            {
+                                if (tokens[i] == "URL")
+                                {
+                                    tocLoc = i;
+                                    break;
+                                }
+                            }
+
+                            string message = "";
+
+                            if (tokens.Length > tocLoc + 1)
+                                message = tokens[tocLoc + 1].Substring(1, tokens[tocLoc + 1].Length - 2);
+
+                            Log(LogEventType.Event, $"(SDK3) Video player attempting to resolve URL");
+                            Log(LogEventType.Info, $"{message}");
+                        }
+                        // Video requested SDK2
+                        else if (line.Contains("added URL"))
+                        {
+                            for(int i = 0; i < tokens.Length; i++)
+                            {
+                                if(tokens[i] == "URL")
+                                {
+                                    tocLoc = i;
+                                    break;
+                                }
+                            }
+
+                            string message = "";
+                            string user = "";
+
+                            for (int i = 1; i < tocLoc - 1; i++)
+                                user += tokens[i] + " ";
+
+                            user = user.Trim();
+
+                            if (tokens.Length > tocLoc + 1)
+                                message = tokens[tocLoc + 1];
+
+                            Log(LogEventType.Event, $"(SDK2) Video player attempting to resolve URL input by {user}");
+                            Log(LogEventType.Info, $"{message}");
+                        }
+                        // Video error
+                        else if(line.Contains("[Video Playback] ERROR"))
+                        {
+                            for(int i = 0; i < tokens.Length; i++)
+                            {
+                                if(tokens[i] == "ERROR:")
+                                {
+                                    tocLoc = i;
+                                    break;
+                                }
+                            }
+
+                            string message = "";
+
+                            for (int i = tocLoc + 1; i < tokens.Length; i++)
+                                message += tokens[i] + " ";
+
+                            Log(LogEventType.Event, $"Video playback failed with the following message: {message}");
                         }
                     }
                 }
