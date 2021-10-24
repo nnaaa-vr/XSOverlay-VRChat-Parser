@@ -55,6 +55,8 @@ namespace XSOverlay_VRChat_Parser
         static int DispatchResolutionMilliseconds = 50;
         static volatile int DispatchRemainingDelay = 0;
 
+        static List<string> KnownDisplayNames = new List<string>();
+
         static void Main(string[] args)
         {
             DateTime now = DateTime.Now;
@@ -248,7 +250,7 @@ namespace XSOverlay_VRChat_Parser
                             nextNotification.Type == EventType.PlayerLeft) &&
                             DispatchQueue.Count > 0)
                         {
-                            // This is only thread-safe because this task is the only place where dequeues can happen. 
+                            // This is only thread-safe because this task is the only place where dequeues can happen.
                             for (int i = 0; i < DispatchQueue.Count; i++)
                             {
                                 NotificationDispatchModel thisModel = DispatchQueue.ElementAt(i);
@@ -522,6 +524,11 @@ namespace XSOverlay_VRChat_Parser
                                     name += tokens[i] + " ";
 
                                 displayName = name.Trim();
+                                if (KnownDisplayNames.IndexOf(displayName) >= 0)
+                                {
+                                    continue;
+                                }
+                                KnownDisplayNames.Add(displayName);
 
                                 message += displayName;
                             }
@@ -571,6 +578,11 @@ namespace XSOverlay_VRChat_Parser
                                     name += tokens[i] + " ";
 
                                 displayName = name.Trim();
+                                int displayNameIndex = KnownDisplayNames.IndexOf(displayName);
+                                if (displayNameIndex >= 0)
+                                {
+                                    KnownDisplayNames.RemoveAt(displayNameIndex);
+                                }
 
                                 message += displayName;
                             }
