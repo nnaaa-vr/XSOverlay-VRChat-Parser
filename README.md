@@ -15,14 +15,14 @@ For news and updates about the parser, feel free to contact me here on GitHub, i
 
 When reporting bugs or simply to review past sessions, note that every session with the application has its output logged to the following directory:
 
->"%AppData%\\..\\LocalLow\\VRChat\\vrchat\\Logs
+>"%AppData%\\..\\LocalLow\\XSOverlay VRChat Parser\\Logs
 
 --------------
 #### Advanced Configuration
 
 For the time being, only a subset of the available configuration options are exposed to the GUI. To access additional configuration options like how frequently the parser checks for updates, what sounds it uses, what icons it uses, where it looks for output logs, please see the configuration json file at the following path:
 
->"%AppData%\\..\\LocalLow\\VRChat\\vrchat\\config.json
+>"%AppData%\\..\\LocalLow\\XSOverlay VRChat Parser\\config.json
 
 --------------
 #### Interface
